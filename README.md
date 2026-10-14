@@ -102,13 +102,111 @@ Every remote engine has a timeout and a circuit breaker, so a dead API is skippe
 
 ## Run the tests
 
-```
-pytest -q                                       # 87 fast tests (mock voice engine, real audio files)
+```bash
+pytest -q                                       # 95 automated tests (biometrics, RAG, policy, security)
 set TEST_VOICE=local && pytest tests\test_real_models.py -s   # real ECAPA + anti-spoof models
 ```
 
-The tests cover: genuine, impostor, clone, mid-call swap, prompt injection, pressure, OTP brute force, OTP-relay defence, payee cooling, per-call cap, app deny, a tampered audit row, a tampered report, path traversal, the WebSocket flow at 16 and 48 kHz, server-side challenge timing, and DetectifAI adapter parsing and failover.
-
-Test audio is LibriSpeech (CC BY 4.0) plus Microsoft edge-tts voices.
+The tests cover: genuine caller verification, impostor mismatch, synthetic voice clone rejection, mid-call speaker swap (CUSUM), prompt injection immunity, social pressure detection, OTP brute-force limits, verbal OTP-relay blackout defense, payee cooling periods, per-call transaction caps, customer app denial, tampered audit logs, tampered evidence reports, 11-domain vector search, zero-hallucination citation verification, and DetectifAI failover.
 
 Frontend contract: see **docs/API.md**.
+Free cloud deployment guide: see **DEPLOYMENT.md**.
+
+---
+
+## 🗺️ Developer Handoff: What is Done vs What is Left
+
+If you just cloned this repository or are collaborating on this project, here is the exact breakdown of the codebase architecture, what is completed, and what is remaining.
+
+### 🎯 Feature Priority Hierarchy
+1. **CORE / PRIMARY FEATURE (Voice Banking Guard)**:
+   - An intelligent voice agent that speaks to the caller, understands intent, and proves who they are before taking any action.
+   - Continuous multi-layered anti-fraud defense: speaker verification, synthetic deepfake detection, and active liveness timing to catch neural voice clones.
+   - Ready to connect to the venue DetectifAI API on Day 1.
+2. **SUB / ADDITIONAL FEATURE (Vector RAG & Autonomous Research)**:
+   - A specialized vector database RAG system strictly seeded across **11 target financial & clone-threat domains**.
+   - If an out-of-domain topic is queried, the **Autonomous Research Agent** automatically scrapes the web in the background, extracts verifiable claims, indexes them with vector embeddings, and answers with verifiable citations.
+
+---
+
+### ✅ WHAT IS COMPLETED (Ready & Fully Functional)
+
+#### 1. Core Voice Security & Banking Engine
+- [x] **Real-time Audio Pipeline (`app/audio.py`, `app/api/ws.py`)**: WebRTC VAD, continuous 16kHz and 48kHz audio ingestion, Opus/PCM streaming, and speech chunk segmentation (1.5s–3.0s).
+- [x] **Continuous Biometric Checks (`app/core/session.py`)**: Parallel background speaker match and deepfake screening every ~3 seconds of speech without pausing the conversation.
+- [x] **Liveness Challenge & Latency Check (`app/core/liveness.py`)**: Random 4-digit spoken challenges with millisecond server-side voice onset measurement (detects 800ms–2500ms neural voice cloning delays).
+- [x] **Trust Fusion & Swap Detection (`app/core/trust.py`)**: Rolling speaker match EMA $\times$ synthetic penalty, fused with challenge score. CUSUM statistical change-point detection catches mid-call speaker swaps.
+- [x] **Strict Risk Policy Tiers (`app/core/policy.py`)**: Tier 0 (FAQ/Info), Tier 1 (Balance/Statements/Card Freeze), Tier 2 (Transfers, Limit Change, Mobile Number Update, Payee Registration). Policy is hardcoded in Python to prevent LLM prompt injection escalation.
+- [x] **Verbal OTP Blackout (`app/core/stepup.py`)**: Spoken OTPs are strictly disallowed on the phone line for sensitive actions (defeating OTP-relay fraud); approval must be executed via the registered mobile app.
+- [x] **Protective Instant Card Freeze (`app/core/banking.py`)**: Reporting a lost/stolen card immediately executes a reversible protective freeze on the call, gating permanent cancellation behind verification.
+- [x] **Social Engineering Pressure Detection (`app/core/pressure.py`)**: Multilingual lexicon (police, arrest, ED, CBI, customs, safe account, urgency) fused with LLM analysis. High pressure forces step-up authentication.
+- [x] **Two-Way Trust Verification (`app/api/calls.py`)**: Generates synchronized 4-digit verification codes visible on the customer's phone app when the bank calls out.
+- [x] **Cryptographic Hash-Chained Audit Ledger (`app/core/audit.py`, `evidence.py`)**: SHA-256 HMAC hash chain of all events, decisions, and scores with tamper detection (`GET /api/audit/verify`) and downloadable evidence packages.
+- [x] **Live Fraud Desk (`app/api/staff.py`, `/ws/dashboard`)**: Live WebSocket dashboard showing real-time trust metrics, active calls, flagged audio clips, ticket management, and one-click channel locking / call termination.
+
+#### 2. Vector Database, Grounded RAG & Autonomous Research (`app/knowledge/`)
+- [x] **Dense Vector Embeddings (`app/knowledge/embedder.py`)**: Generates 256-dimensional float32 vector embeddings for semantic similarity and cosine matching.
+- [x] **Hybrid Vector Knowledge Store (`app/knowledge/store.py`)**: SQLite vector database storing float32 embeddings, document text, and FTS5 BM25 full-text indexing.
+- [x] **Pre-Seeded 11 Target Domains (`app/knowledge/seed_data.py`)**: Fully populated with authoritative guidelines and fraud intelligence for:
+  1. *Banks* (RBI zero liability circular, 3-day notification, 10-day shadow credit, 90-day dispute ceiling)
+  2. *NBFCs* (Digital lending rules, illegal loan app scams, recovery agent calling hours 8 AM–7 PM)
+  3. *Insurers* (IRDAI spurious call alerts, fake unclaimed bonus scams, fraudulent surrender transfers)
+  4. *UPI Users* (The Golden Rule: entering a PIN only debits money; QR code scams; fake screenshot apps)
+  5. *Finance Teams* (CEO/CFO voice cloning wire fraud, mandatory dual authorization, vendor account change checks)
+  6. *Voice Fraud Impersonation* (Neural TTS architectures, acoustic spectral anomalies, pipeline latency signatures)
+  7. *KYC* (Video KYC deepfake bypass, virtual webcams, live geo-tagging, mule account syndicates)
+  8. *Hiring* (Deepfake candidate impersonation in remote job interviews, proxy interview screening)
+  9. *Exams* (Online proctored exam voice proxy cheating, oral defense voice clone defense)
+  10. *Remote Work* (IT helpdesk vishing, MFA fatigue coercion, zero trust phone rules)
+  11. *When Anybody Can Be Cloned* (Family emergency bail scams, virtual kidnapping audio extortion, family secret codeword protocol)
+- [x] **Zero-Hallucination Grounded RAG (`app/knowledge/rag.py`)**: Returns answers with explicit citation tags (`[c1]`, `[d1]`) citing source URLs and domains. Includes lexical verification ensuring all statements are supported.
+- [x] **Autonomous Web Research Fallback (`app/knowledge/pipeline.py`, `search.py`, `scraper.py`)**: If a query is outside the 11 pre-stored domains, the backend automatically plans search tasks, queries DuckDuckGo/Wikipedia, scrapes pages with `trafilatura`, extracts claims, generates vector embeddings, and indexes them into the database before answering.
+- [x] **Caller Integration (`app/core/nlu.py`)**: Voice banking callers asking informational or policy questions receive cited, grounded spoken summaries from the RAG knowledge base.
+- [x] **Interactive Frontend (`app/static/index.html`)**: Added a 4th tab ("Knowledge Base & RAG") with quick topic buttons, interactive RAG query interface with citation pills, autonomous deep research runner, and claims ledger explorer.
+
+#### 3. Free Deployment Architecture
+- [x] **Universal Entrypoint (`run.py`)**: Reads `$PORT` dynamically for container clouds.
+- [x] **Hugging Face Spaces (`Dockerfile`)**: Configured with non-root user permissions, port `7860`, and PyTorch CPU (100% free forever on 16 GB RAM).
+- [x] **Render Web Service (`render.yaml`)**: Configured for 1-click Docker deployment with health check at `/health`.
+- [x] **Comprehensive Guide (`DEPLOYMENT.md`)**: Complete step-by-step instructions for zero-cost deployment.
+
+---
+
+### ⏳ WHAT IS LEFT (To Do on Day 1 at the Venue)
+
+These items require event-specific parameters or live hardware available at the hackathon venue:
+
+1. **Plug in DetectifAI Live Credentials (≈ 10 Minutes)**:
+   - When the organizers provide API credentials, update these fields in your `.env`:
+     ```ini
+     DETECTIFAI_BASE_URL=https://api.detectifai.com
+     DETECTIFAI_API_KEY=your_venue_api_key_here
+     ```
+   - Check the response format using:
+     `python scripts\check_detectifai.py --audio me.wav --audio2 teammate.wav`
+   - If the endpoint paths or field names differ from the defaults, update `DETECTIFAI_ENROLL_PATH`, `DETECTIFAI_VERIFY_PATH`, or `DETECTIFAI_VERIFY_SCORE_PATH` in `.env`. No code edits should be required.
+2. **Room Microphone Acoustic Calibration**:
+   - The local deepfake model is calibrated to standard studio audio. Record 5–10 genuine spoken clips using the venue microphone and send them to:
+     `POST /api/admin/calibrate-spoof`
+   - Copy the suggested threshold into `LOCAL_SPOOF_THRESHOLD` in `.env`.
+3. **Re-Enroll Demo Voices with DetectifAI Connected**:
+   - Re-enroll your team members' genuine voices using the UI or:
+     `python scripts\cli.py enroll --customer cus_ananya --mic`
+   - This ensures both the local ECAPA engine and DetectifAI store live voiceprints.
+4. **Prepare Cloned Audio Clips for the Live Pitch**:
+   - Generate 2–3 synthetic clone clips of your enrolled team member's voice using ElevenLabs, PlayHT, or open-source TTS.
+   - During the live pitch, use the "Play an audio file as caller" button on the **Call** tab to demonstrate:
+     - How the deepfake detector catches synthetic audio.
+     - How the liveness digit challenge catches replay and latency.
+     - How the fraud desk immediately receives a red alert and creates an evidence ticket.
+
+---
+
+### 🔮 OPTIONAL POST-HACKATHON / PRODUCTION ENHANCEMENTS
+
+If you or another developer choose to take this project to enterprise production:
+- **Telephony PSTN Integration**: Connect the WebSocket endpoint (`/ws/call`) to Twilio Media Streams, Asterisk, or FreeSWITCH to receive inbound calls from real mobile phone numbers.
+- **Production Database**: Replace SQLite with PostgreSQL + `pgvector` for distributed multi-region horizontal scaling.
+- **Mobile Push Delivery**: Replace the simulated in-browser phone WebSocket with Apple Push Notification service (APNs) and Firebase Cloud Messaging (FCM) for native iOS and Android apps.
+- **Enterprise IAM & SSO**: Integrate corporate Single Sign-On (SAML/OAuth2) for staff authentication on the Fraud Desk.
+
