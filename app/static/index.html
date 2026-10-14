@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unclone Bank</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%230f7a5c%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-size=%2218%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22%3EU%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+/* Option C "Fintech app": mint ground, white rounded cards, one green accent; red only for danger. */
+:root{
+  --bg:#e6f4ef; --card:#ffffff; --ink:#0f2a22; --muted:#4f6b61; --line:#cfe6dd;
+  --accent:#0f7a5c; --accent-soft:#e9f6f1; --danger:#b42318; --danger-soft:#ffe5e5;
+  --warn:#9a5b00; --warn-soft:#fff3d6; --wave:#a9d7c6; --wave-bad:#e5484d;
+  --font:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;font-weight:700;background:var(--accent);color:#fff}
+button.ghost{background:var(--accent-soft);color:var(--accent)}
+button.danger{background:var(--danger-soft);color:var(--danger)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #0f7a5c55;outline-offset:2px}
+input,select{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff;min-width:0}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-in{max-width:1180px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-left));display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.brand{font-weight:800;font-size:1.15rem;display:flex;gap:8px;align-items:center}
+.brand i{width:26px;height:26px;border-radius:8px;background:var(--accent);display:inline-grid;place-items:center;color:#fff;font-style:normal;font-size:.8rem}
+.tabs{display:flex;gap:6px;background:#d3ebe2;padding:4px;border-radius:14px}
+.tabs button{background:transparent;color:var(--muted);padding:7px 14px;border-radius:10px}
+.tabs button[aria-selected="true"]{background:#fff;color:var(--ink)}
+.top .grow{flex:1}
+.top label{font-size:.8rem;color:var(--muted);display:flex;gap:6px;align-items:center}
+main{max-width:1180px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-left)) 48px}
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+.grid3{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr)}
+@media (max-width:900px){.grid,.grid3{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:18px;padding:18px;box-shadow:0 1px 0 var(--line);display:grid;gap:12px;align-content:start;min-width:0}
+.card h2{margin:0;font-size:1.05rem}
+.lbl{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.muted{color:var(--muted);font-size:.88rem}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.75rem;font-weight:700;background:var(--accent-soft);color:var(--accent)}
+.pill.bad{background:var(--danger-soft);color:var(--danger)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.grey{background:#eef2f0;color:var(--muted)}
+.chat{display:flex;flex-direction:column;gap:8px;min-height:300px;max-height:52vh;overflow-y:auto;padding:4px}
+.bubble{max-width:85%;padding:9px 12px;border-radius:14px;background:var(--accent-soft);white-space:pre-wrap;overflow-wrap:anywhere}
+.bubble.me{align-self:flex-end;background:var(--accent);color:#fff}
+.bubble.sys{align-self:center;background:transparent;color:var(--muted);font-size:.8rem;padding:2px}
+.bubble.challenge{background:var(--warn-soft)}
+.bubble.refusal{background:var(--danger-soft);color:var(--danger)}
+.bubble.result{border:1px solid var(--accent)}
+.micwrap{display:grid;justify-items:center;gap:8px}
+.mic{width:84px;height:84px;border-radius:50%;font-size:.8rem;display:grid;place-items:center;transition:transform .1s}
+.mic.on{background:var(--danger);box-shadow:0 0 0 0 #b4231855;animation:pulse 1.4s infinite}
+.mic.muted{background:#8fb5a8}
+@keyframes pulse{to{box-shadow:0 0 0 18px #b4231800}}
+@media (prefers-reduced-motion:reduce){.mic.on{animation:none}}
+.meter{width:160px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.meter b{display:block;height:100%;width:0;background:var(--accent);transition:width .08s}
+.phone{max-width:380px;margin:0 auto;width:100%;border-radius:34px;border:10px solid #0f2a22;background:#f6fbf9;padding:18px 14px;display:grid;gap:12px;min-height:560px;align-content:start}
+.notif{background:#fff;border-radius:14px;padding:12px;display:grid;gap:6px;box-shadow:0 1px 0 var(--line)}
+.notif.alert{border-left:4px solid var(--danger)}
+.notif.bank{border-left:4px solid var(--accent)}
+.code{font-family:var(--mono);font-size:1.6rem;letter-spacing:.18em;font-weight:700}
+.big{font-size:2.6rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.wave{display:flex;align-items:flex-end;gap:3px;height:90px;padding:6px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.wave i{flex:0 0 10px;border-radius:3px 3px 0 0;background:var(--wave);min-height:4px;position:relative}
+.wave i.bad{background:var(--wave-bad)}
+.wave i.warn{background:#f0b44c}
+.wave i.ch{outline:2px solid var(--ink);outline-offset:1px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.88rem;font-variant-numeric:tabular-nums}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:700;text-align:right}
+.list{display:grid;gap:8px}
+.item{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:4px;background:#fff;min-width:0}
+.item.sel{border-color:var(--accent);box-shadow:0 0 0 2px #0f7a5c22}
+.item button{padding:6px 10px;font-size:.8rem}
+.log{font-size:.82rem;display:grid;gap:6px;max-height:300px;overflow-y:auto}
+.log div{border-left:3px solid var(--line);padding-left:8px;overflow-wrap:anywhere}
+.log .bad{border-color:var(--danger)}.log .ok{border-color:var(--accent)}.log .warn{border-color:#f0b44c}
+details summary{cursor:pointer;font-weight:700}
+.phrases{margin:0;padding-left:18px;display:grid;gap:4px}
+.phrases li.done{color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:.88rem;max-width:90vw}
+.empty{color:var(--muted);font-size:.88rem;text-align:center;padding:20px 8px}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div class="brand"><i>U</i>Unclone Bank</div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="call" aria-selected="true">Call</button>
+    <button role="tab" data-tab="phone" aria-selected="false">Phone app</button>
+    <button role="tab" data-tab="desk" aria-selected="false">Fraud desk</button>
+    <button role="tab" data-tab="knowledge" aria-selected="false">Knowledge Base & RAG</button>
+  </nav>
+
+  <div class="grow"></div>
+  <label>Customer <select id="customer"></select></label>
+  <label>Staff key <input id="staffKey" type="password" placeholder="STAFF_API_KEY from .env" size="14"></label>
+</div></header>
+
+<main>
+<!-- ======================= CALL ======================= -->
+<section id="tab-call" class="grid">
+  <div class="card">
+    <div class="row between">
+      <h2>Phone banking</h2>
+      <span id="callState" class="pill grey">Not connected</span>
+    </div>
+    <div id="chat" class="chat" aria-live="polite"><div class="empty">Start a call and speak. Try "What's my balance?" or "Block my debit card".</div></div>
+    <form id="typeForm" class="row" autocomplete="off">
+      <input id="typeText" placeholder="Or type a message" style="flex:1" disabled>
+      <button id="typeBtn" class="ghost" disabled>Send</button>
+    </form>
+  </div>
+  <div class="card">
+    <div class="row">
+      <label class="muted">Language
+        <select id="lang"><option value="en">English</option><option value="hi">हिन्दी</option><option value="kn">ಕನ್ನಡ</option></select>
+      </label>
+    </div>
+    <div class="row">
+      <button id="startBtn">Start call</button>
+      <button id="endBtn" class="danger" disabled>Hang up</button>
+    </div>
+    <div class="micwrap">
+      <button id="micBtn" class="mic" disabled aria-pressed="false">Mic off</button>
+      <div class="meter" aria-hidden="true"><b id="meter"></b></div>
+      <div id="micHint" class="muted">The mic pauses while the bank is speaking. Tap it to interrupt.</div>
+      <button id="doneBtn" class="ghost" disabled>I'm done speaking</button>
+    </div>
+    <details>
+      <summary>Play an audio file as the caller</summary>
+      <p class="muted">Use this to test a recorded or AI-cloned voice. The file is sent as one thing the caller says.</p>
+      <div class="row"><input id="clipFile" type="file" accept="audio/*" style="flex:1"><button id="clipBtn" class="ghost" disabled>Send clip</button></div>
+    </details>
+  </div>
+</section>
+
+<!-- ======================= PHONE APP ======================= -->
+<section id="tab-phone" class="grid" hidden>
+  <div class="phone">
+    <div class="row between"><b id="pName">—</b><span id="pConn" class="pill grey">offline</span></div>
+    <div id="pBalance" class="notif"></div>
+    <div id="pNotifs" class="list"><div class="empty">Approvals and alerts from the bank appear here.</div></div>
+    <button id="pCheckBank" class="ghost">Is the bank calling me right now?</button>
+  </div>
+  <div class="card">
+    <h2>Voice ID</h2>
+    <p class="muted">Record yourself reading each sentence (3 to 4 seconds each). The bank uses this to recognise your voice on calls.</p>
+    <ol id="phrases" class="phrases"></ol>
+    <div class="row">
+      <button id="recBtn">Record sentence 1</button>
+      <button id="enrollBtn" class="ghost" disabled>Save my voice</button>
+      <button id="recReset" class="ghost">Start over</button>
+    </div>
+    <div id="enrollMsg" class="muted"></div>
+    <hr style="border:0;border-top:1px solid var(--line);width:100%">
+    <h2>Cards</h2>
+    <div id="pCards" class="list"></div>
+  </div>
+</section>
+
+<!-- ======================= FRAUD DESK ======================= -->
+<section id="tab-desk" class="grid3" hidden>
+  <div class="card">
+    <div class="row between"><h2>Calls</h2><span id="dConn" class="pill grey">offline</span></div>
+    <div id="dCalls" class="list"><div class="empty">Live and recent calls appear here.</div></div>
+    <div class="row between"><h2>Tickets</h2><button id="dRefresh" class="ghost">Refresh</button></div>
+    <div id="dTickets" class="list"><div class="empty">No tickets.</div></div>
+    <div class="row"><button id="dAudit" class="ghost">Verify audit log</button><button id="dReset" class="danger">Reset demo bank</button></div>
+  </div>
+  <div class="card">
+    <div class="row between">
+      <div><div class="lbl">Selected call</div><h2 id="sTitle">None</h2></div>
+      <span id="sRisk" class="pill grey">unknown</span>
+    </div>
+    <div class="row between">
+      <div><div class="big" id="sTrust">–</div><div class="lbl">trust</div></div>
+      <dl class="kv">
+        <dt>Speaker match</dt><dd id="sSpk">–</dd>
+        <dt>Synthetic (recent)</dt><dd id="sSyn">–</dd>
+        <dt>Pressure</dt><dd id="sPress">–</dd>
+      </dl>
+    </div>
+    <div>
+      <div class="lbl">Voice checks · bar height = speaker match · red = synthetic or swap</div>
+      <div id="sWave" class="wave"></div>
+    </div>
+    <div class="lbl">What happened</div>
+    <div id="sLog" class="log"><div>Pick a call on the left.</div></div>
+    <div class="row">
+      <button id="sReport" class="ghost" disabled>Evidence report</button>
+      <button id="sKill" class="danger" disabled>End this call</button>
+    </div>
+    <div id="sReportBox" hidden class="item"></div>
+  </div>
+</section>
+
+<!-- ======================= KNOWLEDGE BASE & RAG ======================= -->
+<section id="tab-knowledge" class="grid" hidden>
+  <!-- Left column: Grounded RAG Assistant -->
+  <div class="card">
+    <div class="row between">
+      <h2>Grounded Banking & Threat Intel RAG</h2>
+      <span id="ragStatus" class="pill">Ready</span>
+    </div>
+    <div class="muted">Ask any banking policy, regulatory, or fraud defense question. Answers are grounded in the knowledge base with verbatim citations and verification rulings.</div>
+    
+    <div>
+      <div class="lbl" style="margin-bottom:6px">Target Domains (Pre-stored in Vector Database)</div>
+      <div class="row" id="quickQueries" style="gap:5px;flex-wrap:wrap">
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="What is the customer liability under RBI rules for unauthorized transactions reported within 3 days?">Banks: RBI Liability</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="What are the RBI rules for NBFC loan recovery agents calling borrowers?">NBFCs: Recovery Rules</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="Does IRDAI call policyholders to distribute unclaimed insurance bonuses?">Insurers: Bonus Scams</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="Do I ever need to enter my UPI PIN to receive money into my account?">UPI: PIN Safety</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="What is the mandatory policy for finance teams when a CEO calls demanding a wire transfer?">Finance: CEO Wire Fraud</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="How do family emergency cloned voice kidnapping scams work and how to stay safe?">Family Voice Clones</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="How do fraudsters attempt to bypass Video KYC using deepfakes and virtual cameras?">KYC: Deepfake Bypass</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="How is deepfake candidate impersonation detected in remote job interviews?">Hiring: Proxy Interviews</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="How do online proctored exams detect voice proxy test takers?">Exams: Voice Proctoring</button>
+        <button type="button" class="ghost" style="padding:3px 7px;font-size:.74rem" data-q="What should remote employees do if a caller claiming to be IT helpdesk asks for passwords?">Remote Work: IT Vishing</button>
+      </div>
+    </div>
+
+
+    <form id="ragForm" class="row" autocomplete="off" style="margin-top:4px">
+      <input id="ragInput" placeholder="Type a banking or scam query..." style="flex:1" required>
+      <button id="ragSubmit">Ask RAG</button>
+    </form>
+
+    <div id="ragResults" hidden style="display:grid;gap:12px;margin-top:6px">
+      <div id="ragSpokenBox" class="notif bank">
+        <div class="lbl" style="color:var(--accent)">Voice Banking Spoken Summary</div>
+        <div id="ragSpoken" style="font-weight:600;font-size:.95rem"></div>
+      </div>
+
+      <div>
+        <div class="row between">
+          <div class="lbl">Grounded Answer (with citations)</div>
+          <span id="ragVerifBadge" class="pill"></span>
+        </div>
+        <div id="ragSentences" style="display:grid;gap:6px;margin-top:6px"></div>
+      </div>
+
+      <details id="ragEvidenceDetails">
+        <summary class="lbl">Retrieved Evidence & Sources (<span id="ragEvCount">0</span> items)</summary>
+        <div id="ragEvidenceList" class="list" style="margin-top:8px;max-height:260px;overflow-y:auto"></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- Right column: Research, Web Scraping & Knowledge Explorer -->
+  <div class="card">
+    <div class="row between">
+      <h2>Autonomous Research & Web Scraper</h2>
+      <span id="kbStatsPill" class="pill grey">Loading KB...</span>
+    </div>
+    
+    <!-- Tool 1: Autonomous Research -->
+    <div class="item">
+      <div class="lbl">1. Autonomous Deep Research</div>
+      <div class="muted">Decomposes topic, searches web via DuckDuckGo, scrapes sources, extracts claims, and updates vector store.</div>
+      <form id="researchForm" class="row" autocomplete="off" style="margin-top:4px">
+        <input id="researchInput" placeholder="e.g. RBI cyber security guidelines 2026" style="flex:1" required>
+        <button id="researchBtn" class="ghost">Run Research</button>
+      </form>
+      <div id="researchProgress" hidden class="log" style="margin-top:8px;max-height:160px;background:#f9fcfb;padding:8px;border-radius:8px"></div>
+    </div>
+
+    <!-- Tool 2: Direct Web Scraper -->
+    <div class="item">
+      <div class="lbl">2. Direct Page Scraper</div>
+      <div class="muted">Scrapes any policy URL directly, cleans content with trafilatura, and indexes claims.</div>
+      <form id="scrapeForm" class="row" autocomplete="off" style="margin-top:4px">
+        <input id="scrapeInput" type="url" placeholder="https://example.com/advisory.html" style="flex:1" required>
+        <button id="scrapeBtn" class="ghost">Scrape URL</button>
+      </form>
+      <div id="scrapeResult" hidden class="muted" style="margin-top:4px;font-size:.82rem"></div>
+    </div>
+
+    <!-- Tool 3: Knowledge Base Ledger -->
+    <div>
+      <div class="row between" style="margin-bottom:6px">
+        <div class="lbl">Knowledge Base Claims Ledger</div>
+        <button id="refreshKbBtn" class="ghost" style="padding:3px 8px;font-size:.75rem">Refresh</button>
+      </div>
+      <div id="kbClaimsList" class="list" style="max-height:240px;overflow-y:auto">
+        <div class="empty">Loading claims...</div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- helpers
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const wsBase = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
+const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+const DEMO = [
+  { id: "cus_ananya", name: "Ananya Rao", token: "app-ananya-demo", lang: "en" },
+  { id: "cus_rahul", name: "Rahul Sharma", token: "app-rahul-demo", lang: "hi" },
+  { id: "cus_lakshmi", name: "Lakshmi Gowda", token: "app-lakshmi-demo", lang: "kn" },
+];
+let customers = DEMO.slice();
+const cust = () => customers.find((c) => c.id === $("customer").value) || customers[0];
+const staffKey = () => $("staffKey").value.trim();
+let toastT;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 3500); }
+async function api(path, { method = "GET", body, headers = {}, form } = {}) {
+  const h = { ...headers };
+  if (body !== undefined) h["Content-Type"] = "application/json";
+  const r = await fetch(path, { method, headers: h, body: form ?? (body !== undefined ? JSON.stringify(body) : undefined) });
+  const txt = await r.text();
+  let data; try { data = txt ? JSON.parse(txt) : {}; } catch { data = { detail: txt }; }
+  if (!r.ok) { const d = data.detail; throw new Error(typeof d === "string" ? d : d?.message || JSON.stringify(d) || r.statusText); }
+  return data;
+}
+const staffH = () => ({ "X-Staff-Key": staffKey() });
+const appH = () => ({ "X-App-Token": cust().token });
+const fmt = (v, d = 2) => (v === null || v === undefined ? "–" : Number(v).toFixed(d));
+
+// ---------------------------------------------------------------- tabs + header
+document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+function showTab(name) {
+  document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  ["call", "phone", "desk", "knowledge"].forEach((t) => {
+    const el = $("tab-" + t);
+    if (el) el.hidden = t !== name;
+  });
+  store.set("tab", name);
+  if (name === "phone") Phone.open();
+  if (name === "desk") Desk.open();
+  if (name === "knowledge") Knowledge.open();
+}
+
+$("staffKey").value = store.get("staffKey", "");
+$("staffKey").addEventListener("change", async () => {
+  store.set("staffKey", staffKey());
+  if (staffKey()) {
+    const r = await fetch("/api/customers", { headers: staffH() }).catch(() => null);
+    toast(r && r.ok ? "Staff key accepted" : "Wrong staff key - use STAFF_API_KEY from your .env file");
+  }
+  Desk.reopen(); loadCustomers();
+});
+function fillCustomers() {
+  const keep = $("customer").value || store.get("customer", "cus_ananya");
+  $("customer").innerHTML = customers.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+  $("customer").value = customers.some((c) => c.id === keep) ? keep : customers[0].id;
+}
+async function loadCustomers() {
+  if (!staffKey()) return fillCustomers();
+  try {
+    const r = await api("/api/customers", { headers: staffH() });
+    customers = r.customers.map((c) => ({ id: c.id, name: c.name, token: c.app_token, lang: c.lang, enrolled: c.voice_enrolled }));
+  } catch { customers = DEMO.slice(); }
+  fillCustomers();
+}
+$("customer").addEventListener("change", () => {
+  store.set("customer", $("customer").value);
+  const c = cust(); if (c.lang) $("lang").value = c.lang;
+  Phone.reopen(); Enroll.load();
+});
+
+// ---------------------------------------------------------------- agent speech playback (queue)
+const Speaker = {
+  // Plays agent replies one after another. Every clip has a watchdog: browsers (Chrome especially) sometimes
+  // never fire "ended" for speechSynthesis, which used to leave the mic muted forever.
+  queue: [], playing: false, current: null, utter: null, timer: null, onIdle: null,
+  push(msg) { this.queue.push(msg); if (!this.playing) this.next(); },
+  get busy() { return this.playing || this.queue.length > 0; },
+  next() {
+    clearTimeout(this.timer);
+    const m = this.queue.shift();
+    if (!m) { this.playing = false; this.current = null; Mic.refresh(); this.onIdle && this.onIdle(); return; }
+    this.playing = true; this.current = m; Mic.refresh();
+    let finished = false;
+    const done = () => {
+      if (finished) return; finished = true;
+      clearTimeout(this.timer);
+      Call.send({ type: "playback", id: m.id, state: "ended" });
+      this.next();
+    };
+    this.finish = done;
+    const est = Number(m.est_duration_s) || Math.max(2, String(m.text || "").split(/\s+/).length * 0.45);
+    this.timer = setTimeout(done, (est + 2.5) * 1000); // watchdog
+    if (m.audio_mp3_b64) {
+      const a = new Audio("data:audio/mpeg;base64," + m.audio_mp3_b64);
+      this.audio = a;
+      a.onended = done; a.onerror = done;
+      a.play().then(() => Call.send({ type: "playback", id: m.id, state: "started" })).catch(() => this.speak(m, done));
+    } else this.speak(m, done);
+  },
+  speak(m, done) {
+    if (!("speechSynthesis" in window)) return done();
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(m.text);
+      u.lang = { en: "en-IN", hi: "hi-IN", kn: "kn-IN" }[m.lang] || "en-IN";
+      const v = speechSynthesis.getVoices().find((x) => x.lang?.toLowerCase().startsWith(u.lang.slice(0, 2)));
+      if (v) u.voice = v;
+      u.onend = done; u.onerror = done;
+      this.utter = u; // keep a reference: Chrome drops 'onend' if the utterance is garbage-collected
+      speechSynthesis.speak(u);
+      Call.send({ type: "playback", id: m.id, state: "started" });
+    } catch { done(); }
+  },
+  skip() { // caller interrupts: stop the current clip and everything queued
+    this.queue = [];
+    try { this.audio?.pause(); } catch {}
+    try { speechSynthesis.cancel(); } catch {}
+    if (this.finish) this.finish();
+  },
+  stop() { clearTimeout(this.timer); this.queue = []; this.playing = false; try { this.audio?.pause(); speechSynthesis.cancel(); } catch {} },
+};
+
+// ---------------------------------------------------------------- microphone (AudioWorklet -> PCM16 over WebSocket)
+const WORKLET = `class Tap extends AudioWorkletProcessor{process(i){const c=i[0]&&i[0][0];if(c)this.port.postMessage(c.slice(0));return true}}registerProcessor("tap",Tap);`;
+const Mic = {
+  ctx: null, node: null, stream: null, on: false, buf: [], bufLen: 0,
+  async start() {
+    if (!navigator.mediaDevices?.getUserMedia) { toast("This browser can't use the microphone here. Open the page on http://localhost:8000."); return; }
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    this.ctx = new AudioContext();
+    await this.ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" })));
+    const src = this.ctx.createMediaStreamSource(this.stream);
+    this.node = new AudioWorkletNode(this.ctx, "tap");
+    const per = Math.round(this.ctx.sampleRate / 10); // ~100 ms packets
+    this.node.port.onmessage = (e) => {
+      const f = e.data; let peak = 0;
+      for (let i = 0; i < f.length; i++) peak = Math.max(peak, Math.abs(f[i]));
+      $("meter").style.width = Math.min(100, peak * 140) + "%";
+      if (!this.on || Speaker.busy) { this.buf = []; this.bufLen = 0; return; }
+      this.buf.push(f); this.bufLen += f.length;
+      if (this.bufLen >= per) this.flush();
+    };
+    src.connect(this.node);
+    Call.send({ type: "config", sample_rate: this.ctx.sampleRate });
+  },
+  flush() {
+    if (!this.bufLen) return;
+    const out = new Int16Array(this.bufLen); let o = 0;
+    for (const f of this.buf) for (let i = 0; i < f.length; i++) { const s = Math.max(-1, Math.min(1, f[i])); out[o++] = s < 0 ? s * 32768 : s * 32767; }
+    this.buf = []; this.bufLen = 0;
+    Call.sendBinary(out.buffer);
+  },
+  refresh() {
+    const b = $("micBtn");
+    b.classList.toggle("on", this.on && !Speaker.busy);
+    b.classList.toggle("muted", this.on && Speaker.busy);
+    b.textContent = !this.on ? "Mic off" : Speaker.busy ? "Bank speaking · tap to talk" : "Listening";
+    b.setAttribute("aria-pressed", String(this.on));
+  },
+  stop() {
+    this.on = false; this.refresh();
+    try { this.node?.disconnect(); this.stream?.getTracks().forEach((t) => t.stop()); this.ctx?.close(); } catch {}
+    this.ctx = this.node = this.stream = null; $("meter").style.width = "0";
+  },
+};
+
+// ---------------------------------------------------------------- call
+const Call = {
+  ws: null, id: null, token: null,
+  send(o) { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(o)); },
+  sendBinary(b) { if (this.ws?.readyState === 1) this.ws.send(b); },
+  setState(text, cls = "grey") { const s = $("callState"); s.textContent = text; s.className = "pill " + cls; },
+  bubble(text, cls = "") {
+    const chat = $("chat"); chat.querySelector(".empty")?.remove();
+    const d = document.createElement("div"); d.className = "bubble " + cls; d.textContent = text;
+    chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+  },
+  handle(ev, d) {
+    if (ev === "agent_say") { this.bubble(d.text, d.kind || ""); Speaker.push(d); }
+    else if (ev === "transcript") { if (d.text) this.bubble(d.text, "me"); }
+    else if (ev === "action_executed") this.bubble("✓ " + (d.result?.summary || d.intent), "sys");
+    else if (ev === "call_ended") { this.bubble("Call ended", "sys"); this.cleanup(); }
+    else if (ev === "error") this.bubble(d.message, "sys");
+    else if (ev === "ready") this.setState(d.enrolled ? "Connected · voice ID on" : "Connected · no voice ID", d.enrolled ? "" : "warn");
+  },
+  async start() {
+    $("startBtn").disabled = true;
+    $("chat").innerHTML = "";
+    try {
+      const r = await api("/api/calls", { method: "POST", body: { customer_id: cust().id, lang: $("lang").value } });
+      this.id = r.call_id; this.token = r.call_token;
+      this.ws = new WebSocket(wsBase + r.ws_url);
+      this.ws.binaryType = "arraybuffer";
+      this.ws.onmessage = (e) => { const m = JSON.parse(e.data); this.handle(m.event, m.data); };
+      this.ws.onclose = () => { if (this.id) { this.bubble("Disconnected", "sys"); this.cleanup(); } };
+      await new Promise((ok, bad) => { this.ws.onopen = ok; this.ws.onerror = () => bad(new Error("Could not connect to the call")); });
+      ["endBtn", "micBtn", "doneBtn", "typeText", "typeBtn", "clipBtn"].forEach((k) => ($(k).disabled = false));
+      try { await Mic.start(); Mic.on = true; } catch (e) { toast("Microphone blocked: " + e.message + ". You can still type."); }
+      Mic.refresh();
+    } catch (e) { toast(e.message); this.cleanup(); }
+  },
+  end() { this.send({ type: "hangup" }); setTimeout(() => this.ws?.close(), 300); },
+  cleanup() {
+    Mic.stop(); Speaker.stop();
+    this.id = null; this.ws = null;
+    ["endBtn", "micBtn", "doneBtn", "typeText", "typeBtn", "clipBtn"].forEach((k) => ($(k).disabled = true));
+    $("startBtn").disabled = false; this.setState("Not connected");
+  },
+};
+$("startBtn").onclick = () => Call.start();
+$("endBtn").onclick = () => Call.end();
+$("micBtn").onclick = () => {
+  if (Speaker.busy) { Speaker.skip(); Mic.on = true; Mic.refresh(); return; } // tap to interrupt the bank and talk
+  Mic.on = !Mic.on; if (!Mic.on) { Mic.flush(); Call.send({ type: "end_utterance" }); } Mic.refresh();
+};
+$("doneBtn").onclick = () => { Mic.flush(); Call.send({ type: "end_utterance" }); };
+$("typeForm").onsubmit = (e) => { e.preventDefault(); const t = $("typeText").value.trim(); if (!t) return; Call.send({ type: "text", text: t }); $("typeText").value = ""; };
+$("clipBtn").onclick = async () => {
+  const f = $("clipFile").files[0]; if (!f || !Call.id) return toast("Choose an audio file first");
+  const fd = new FormData(); fd.append("file", f);
+  $("clipBtn").disabled = true; Call.bubble("Sending " + f.name + "…", "sys");
+  try {
+    const r = await api(`/api/calls/${Call.id}/turn`, { method: "POST", headers: { "X-Call-Token": Call.token }, form: fd });
+    // the WebSocket already delivers these events live; only fall back if it is closed
+    if (!Call.ws || Call.ws.readyState !== 1) r.events.forEach((e) => Call.handle(e.event, e.data));
+  } catch (e) { toast(e.message); } finally { $("clipBtn").disabled = !Call.id; }
+};
+
+// ---------------------------------------------------------------- phone app
+const Phone = {
+  ws: null, forId: null,
+  open() { if (this.forId !== cust().id) this.reopen(); },
+  reopen() {
+    try { this.ws?.close(); } catch {}
+    const c = cust(); this.forId = c.id;
+    $("pName").textContent = c.name; $("pNotifs").innerHTML = '<div class="empty">Approvals and alerts from the bank appear here.</div>';
+    this.loadMe(); this.loadPending();
+    this.ws = new WebSocket(`${wsBase}/ws/customer/${encodeURIComponent(c.id)}?token=${encodeURIComponent(c.token)}`);
+    this.ws.onopen = () => { $("pConn").textContent = "online"; $("pConn").className = "pill"; };
+    this.ws.onclose = () => { $("pConn").textContent = "offline"; $("pConn").className = "pill grey"; };
+    this.ws.onmessage = (e) => { const m = JSON.parse(e.data); this.on(m.event, m.data); };
+  },
+  async loadMe() {
+    try {
+      const me = await api("/api/app/me", { headers: appH() });
+      $("pBalance").innerHTML = me.accounts.map((a) => `<div class="lbl">Savings ··${esc(a.number_last4)}</div><div class="big" style="font-size:1.8rem">${esc(a.balance)}</div>`).join("") +
+        `<div class="muted">Voice ID: ${me.voice_enrolled ? "set up" : "not set up"}${me.voice_locked ? " · locked by bank" : ""}</div>`;
+      $("pCards").innerHTML = me.cards.map((k) => `<div class="item"><div class="row between"><b>${esc(k.kind)} ··${esc(k.last4)}</b><span class="pill ${k.status === "active" ? "" : k.status === "frozen" ? "warn" : "bad"}">${esc(k.status)}</span></div>
+        <div class="muted">Daily limit Rs ${(k.daily_limit_paise / 100).toLocaleString("en-IN")} · International ${k.international ? "on" : "off"}</div>
+        ${k.status === "active" ? `<button class="danger" data-freeze="${esc(k.last4)}">Freeze now</button>` : ""}</div>`).join("");
+    } catch (e) { $("pBalance").innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+  },
+  async loadPending() {
+    try {
+      const p = await api("/api/app/pending", { headers: appH() });
+      p.stepups.forEach((s) => this.on("stepup_request", { stepup_id: s.stepup_id, action: s.action || "Confirm a request on your call", code: null }));
+      if (p.bank_call) this.on("incoming_bank_call", p.bank_call);
+    } catch {}
+  },
+  add(html, cls = "") {
+    const box = $("pNotifs"); box.querySelector(".empty")?.remove();
+    const d = document.createElement("div"); d.className = "notif " + cls; d.innerHTML = html; box.prepend(d); return d;
+  },
+  on(ev, d) {
+    if (ev === "stepup_request") {
+      if (document.querySelector(`[data-stepup="${CSS.escape(d.stepup_id)}"]`)) return;
+      const n = this.add(`<div class="lbl">Approve this request?</div><b>${esc(d.action)}</b>
+        ${d.code ? `<div class="muted">Code</div><div class="code">${esc(d.code)}</div>` : ""}
+        <div class="muted">${esc(d.warning || "Approve only if you are on a call with Unclone Bank right now.")}</div>
+        <div class="row"><button data-act="approve">Approve</button><button class="danger" data-act="deny">This isn't me</button></div>`, "bank");
+      n.dataset.stepup = d.stepup_id;
+      n.querySelectorAll("button").forEach((b) => (b.onclick = async () => {
+        n.querySelectorAll("button").forEach((x) => (x.disabled = true));
+        try { const r = await api(`/api/app/stepups/${d.stepup_id}/${b.dataset.act}`, { method: "POST", headers: appH() });
+          n.querySelector(".row").innerHTML = `<span class="pill ${r.status === "approved" ? "" : "bad"}">${esc(r.status)}</span>`; this.loadMe();
+        } catch (e) { n.querySelector(".row").innerHTML = `<span class="pill grey">${esc(e.message)}</span>`; }
+      }));
+    } else if (ev === "incoming_bank_call" || ev === "bank_call_verification") {
+      this.add(`<div class="lbl">${ev === "incoming_bank_call" ? "Unclone Bank is calling you" : "Yes, this call is from Unclone Bank"}</div>
+        <div class="muted">The agent will say this code:</div><div class="code">${esc(d.code)}</div>
+        ${d.reason ? `<div class="muted">${esc(d.reason)}</div>` : ""}
+        <div class="row"><button class="ghost" data-v="confirm">Codes match</button><button class="danger" data-v="report">Code is different</button></div>`, "bank")
+        .querySelectorAll("button").forEach((b) => (b.onclick = async () => {
+          try { await api(`/api/app/bank-call/${d.notice_id}/${b.dataset.v}`, { method: "POST", headers: appH() }); toast(b.dataset.v === "confirm" ? "Thanks, call confirmed" : "Reported to the fraud team"); } catch (e) { toast(e.message); }
+        }));
+    } else if (ev === "security_alert") this.add(`<div class="lbl">Security alert</div><div>${esc(d.message)}</div>`, "alert");
+    else if (ev === "account_activity") { this.add(`<div class="lbl">Done on your call</div><div>${esc(d.summary)}</div>`); this.loadMe(); }
+    else if (ev === "call_connected") this.add(`<div class="lbl">On a call</div><div>${esc(d.message)}</div>`, "bank");
+  },
+};
+$("pCheckBank").onclick = async () => {
+  try { const r = await api("/api/app/bank-call", { headers: appH() });
+    if (r.genuine_bank_call) Phone.on("incoming_bank_call", r); else Phone.add(`<div class="lbl">No call from the bank</div><div>${esc(r.message)}</div>`, "alert");
+  } catch (e) { toast(e.message); }
+};
+$("pCards").addEventListener("click", async (e) => {
+  const l4 = e.target?.dataset?.freeze; if (!l4) return;
+  try { await api(`/api/app/cards/${l4}/freeze`, { method: "POST", headers: appH() }); toast("Card frozen"); Phone.loadMe(); } catch (er) { toast(er.message); }
+});
+
+// ---------------------------------------------------------------- voice enrollment (from the app)
+const Enroll = {
+  phrases: [], clips: [], rec: null,
+  async load() {
+    this.clips = [];
+    try { const r = await api(`/api/enrollment/phrases?lang=${encodeURIComponent(cust().lang || "en")}`); this.phrases = r.phrases.slice(0, 4); } catch { this.phrases = []; }
+    this.render();
+  },
+  render() {
+    $("phrases").innerHTML = this.phrases.map((p, i) => `<li class="${i < this.clips.length ? "done" : ""}">${esc(p)}${i < this.clips.length ? " ✓" : ""}</li>`).join("");
+    const n = this.clips.length;
+    $("recBtn").textContent = this.rec ? "Stop recording" : n < this.phrases.length ? `Record sentence ${n + 1}` : "All recorded";
+    $("recBtn").disabled = !this.rec && n >= this.phrases.length;
+    $("enrollBtn").disabled = n < 3 || !!this.rec;
+  },
+  async toggle() {
+    if (this.rec) { this.rec.stop(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      const chunks = []; const mr = new MediaRecorder(stream);
+      mr.ondataavailable = (e) => chunks.push(e.data);
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop()); this.rec = null;
+        const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+        const fd = new FormData(); fd.append("file", blob, "s.webm");
+        try { const q = await api("/api/audio/quality", { method: "POST", form: fd });
+          if (q.ok) { this.clips.push(blob); $("enrollMsg").textContent = "Good recording."; }
+          else $("enrollMsg").textContent = "Please record again: " + q.problems.join(", ");
+        } catch (e) { $("enrollMsg").textContent = e.message; }
+        this.render();
+      };
+      mr.start(); this.rec = mr; this.render(); $("enrollMsg").textContent = "Recording… read the sentence, then press Stop.";
+    } catch (e) { toast("Microphone blocked: " + e.message); }
+  },
+  async save() {
+    const fd = new FormData(); this.clips.forEach((b, i) => fd.append("files", b, `s${i}.webm`));
+    $("enrollBtn").disabled = true; $("enrollMsg").textContent = "Saving your voice ID…";
+    try { const r = await api(`/api/customers/${cust().id}/enroll`, { method: "POST", headers: appH(), form: fd });
+      $("enrollMsg").textContent = `Voice ID saved (${r.engines}).` + (r.warnings?.length ? " Note: " + r.warnings.join("; ") : "");
+      this.clips = []; this.render(); Phone.loadMe();
+    } catch (e) { $("enrollMsg").textContent = e.message; this.render(); }
+  },
+};
+$("recBtn").onclick = () => Enroll.toggle();
+$("enrollBtn").onclick = () => Enroll.save();
+$("recReset").onclick = () => { Enroll.clips = []; $("enrollMsg").textContent = ""; Enroll.render(); };
+
+// ---------------------------------------------------------------- fraud desk
+const Desk = {
+  ws: null, calls: new Map(), sel: null, opened: false,
+  open() { if (!this.opened) this.reopen(); },
+  reopen() {
+    try { this.ws?.close(); } catch {}
+    if (!staffKey()) { $("dConn").textContent = "enter staff key"; $("dConn").className = "pill warn"; return; }
+    this.opened = true;
+    this.ws = new WebSocket(`${wsBase}/ws/dashboard?staff_key=${encodeURIComponent(staffKey())}`);
+    this.ws.onopen = () => { $("dConn").textContent = "live"; $("dConn").className = "pill"; };
+    this.ws.onclose = (e) => { $("dConn").textContent = e.code === 4401 ? "wrong staff key" : "offline"; $("dConn").className = "pill " + (e.code === 4401 ? "bad" : "grey"); this.opened = false; };
+    this.ws.onmessage = (e) => { const m = JSON.parse(e.data); this.on(m.event, m.data); };
+    this.loadCalls(); this.loadTickets();
+  },
+  get(id) {
+    if (!this.calls.has(id)) this.calls.set(id, { id, name: "", live: true, chunks: [], log: [], trust: null, risk: "unknown", spk: null, syn: null, pressure: 0 });
+    return this.calls.get(id);
+  },
+  async loadCalls() {
+    try {
+      const r = await api("/api/calls?limit=30", { headers: staffH() });
+      r.calls.forEach((c) => { const s = this.get(c.id); Object.assign(s, { name: s.name || c.customer_id || "Unknown caller", live: c.live, trust: c.trust, risk: c.risk_state, outcome: c.outcome, started: c.started_at }); });
+      this.renderCalls();
+      if (!this.sel && r.calls[0]) this.select(r.calls[0].id);
+    } catch (e) { toast(e.message); }
+  },
+  async loadTickets() {
+    try {
+      const r = await api("/api/tickets?limit=30", { headers: staffH() });
+      $("dTickets").innerHTML = r.tickets.length ? r.tickets.map((t) => `<div class="item">
+        <div class="row between"><span class="pill ${t.severity === "critical" ? "bad" : "warn"}">${esc(t.severity)}</span><span class="pill grey">${esc(t.status.replace("_", " "))}</span></div>
+        <div style="font-size:.85rem">${esc((t.reasons || []).join("; "))}</div>
+        <div class="row">${t.status === "open" ? `<button data-t="${esc(t.id)}" data-s="confirmed_fraud">Confirm fraud + lock voice</button><button class="ghost" data-t="${esc(t.id)}" data-s="false_positive">False alarm</button>` : ""}
+        <button class="ghost" data-call="${esc(t.call_id)}">Open call</button></div></div>`).join("") : '<div class="empty">No tickets.</div>';
+    } catch {}
+  },
+  renderCalls() {
+    const arr = [...this.calls.values()].sort((a, b) => (b.live - a.live) || String(b.started || b.id).localeCompare(String(a.started || a.id)));
+    $("dCalls").innerHTML = arr.length ? arr.map((c) => `<div class="item ${c.id === this.sel ? "sel" : ""}" data-call="${esc(c.id)}" role="button" tabindex="0">
+      <div class="row between"><b>${esc(c.name || "Unknown caller")}</b><span class="pill ${riskCls(c.risk)}">${esc(c.risk)}</span></div>
+      <div class="muted">${c.live ? "● live" : "ended"} · trust ${fmt(c.trust)}${c.outcome ? " · " + esc(c.outcome) : ""}</div></div>`).join("") : '<div class="empty">Live and recent calls appear here.</div>';
+  },
+  select(id) {
+    this.sel = id; this.renderCalls(); this.renderSel();
+    $("sReport").disabled = false; $("sReportBox").hidden = true;
+    const c = this.get(id);
+    if (!c.loaded) { c.loaded = true; this.backfill(id); }
+  },
+  async backfill(id) {
+    // ended or already-running call: rebuild its picture from the evidence report
+    try {
+      const r = await api(`/api/calls/${id}/report`, { headers: staffH() });
+      const c = this.get(id);
+      if (r.customer) c.name = r.customer.name;
+      if (!c.chunks.length) c.chunks = r.voice_checks.map((v) => ({ seq: v.seq, speaker_prob: v.speaker_prob, synthetic_prob: v.synthetic_prob, flags: v.flags, purpose: v.purpose }));
+      if (!c.log.length) r.timeline.forEach((t) => this.logLine(c, t.kind, t.data));
+      c.risk = r.verdict.risk_state; c.trust = r.verdict.final_trust; c.pressure = r.verdict.pressure ?? c.pressure;
+      this.renderCalls(); if (this.sel === id) this.renderSel();
+    } catch {}
+  },
+  logLine(c, ev, d) {
+    const L = (cls, text) => c.log.push({ cls, text });
+    if (ev === "transcript" && d.text) L("", "Caller: " + d.text);
+    else if (ev === "agent_say") L("", "Agent: " + d.text);
+    else if (ev === "decision") L(d.outcome === "allow" ? "ok" : d.outcome === "refuse" ? "bad" : "warn", `Decision: ${d.outcome.toUpperCase()} (${d.intent}) · ${(d.reasons || []).join("; ")}`);
+    else if (ev === "segment_flagged") L("bad", `Flagged ${fmt(d.t_start, 1)}–${fmt(d.t_end, 1)}s: ${(d.flags || []).join(", ")}`);
+    else if (ev === "voice_swap") L("bad", "Voice changed mid-call: " + d.reason);
+    else if (ev === "challenge_result") L(d.passed ? "ok" : "warn", `Liveness ${d.passed ? "passed" : "failed"}${d.latency_s != null ? " in " + d.latency_s + "s" : ""} · speaker ${fmt(d.speaker_prob)} · synthetic ${fmt(d.synthetic_prob)}`);
+    else if (ev === "stepup_sent") L("warn", "Approval sent to the customer's app");
+    else if (ev === "stepup_result") L(d.status === "approved" ? "ok" : "bad", "App approval: " + d.status);
+    else if (ev === "pressure_detected") L("warn", `Pressure tactics (${fmt(d.score)}): ${(d.cues || []).join(", ")}`);
+    else if (ev === "action_executed") L("ok", "Done: " + (d.result?.summary || d.intent));
+    else if (ev === "action_refused") L("bad", "Refused: " + (d.reasons || []).join("; "));
+    else if (ev === "ticket_created") L("bad", `Ticket opened (${d.severity})`);
+    else if (ev === "protective_freeze") L("ok", "Card frozen instantly (protective)");
+    if (c.log.length > 200) c.log.splice(0, c.log.length - 200);
+  },
+  on(ev, d) {
+    if (!d || !d.call_id) { if (ev.startsWith("ticket")) this.loadTickets(); return; }
+    const c = this.get(d.call_id); c.loaded = true;
+    if (ev === "call_started") { c.live = true; c.started = new Date().toISOString(); if (!this.sel || !this.get(this.sel).live) this.sel = null; }
+    if (ev === "identified") c.name = d.name;
+    if (ev === "call_ended") { c.live = false; c.outcome = d.outcome; }
+    if (ev === "trust_update") {
+      c.chunks.push(d.chunk); c.trust = d.trust; c.risk = d.risk_state; c.spk = d.speaker_ema; c.syn = d.recent_synthetic;
+    }
+    if (ev === "pressure_detected") c.pressure = d.level;
+    if (ev === "action_refused" || ev === "voice_swap") c.risk = "fraud";
+    this.logLine(c, ev, d);
+    if (ev === "ticket_created") this.loadTickets();
+    this.renderCalls();
+    if (!this.sel) this.select(d.call_id);
+    if (this.sel === d.call_id) this.renderSel();
+  },
+  renderSel() {
+    const c = this.calls.get(this.sel); if (!c) return;
+    $("sTitle").textContent = c.name || "Unknown caller";
+    $("sRisk").textContent = c.risk; $("sRisk").className = "pill " + riskCls(c.risk);
+    $("sTrust").textContent = fmt(c.trust); $("sTrust").style.color = c.risk === "fraud" || c.risk === "suspicious" ? "var(--danger)" : "var(--ink)";
+    const last = c.chunks.filter((x) => x.speaker_prob != null);
+    $("sSpk").textContent = fmt(c.spk ?? last.at(-1)?.speaker_prob);
+    $("sSyn").textContent = fmt(c.syn ?? Math.max(0, ...c.chunks.slice(-3).map((x) => x.synthetic_prob ?? 0)));
+    $("sPress").textContent = fmt(c.pressure);
+    $("sWave").innerHTML = c.chunks.map((x) => {
+      const bad = (x.flags || []).some((f) => f === "synthetic" || f === "voice_swap");
+      const warn = !bad && (x.flags || []).some((f) => f === "synthetic_suspect" || f === "speaker_mismatch");
+      const h = Math.max(6, Math.round((x.speaker_prob ?? 0.05) * 100));
+      return `<i class="${bad ? "bad" : warn ? "warn" : ""} ${x.purpose === "challenge" ? "ch" : ""}" style="height:${h}%" title="#${x.seq} ${esc(x.purpose)} · speaker ${fmt(x.speaker_prob)} · synthetic ${fmt(x.synthetic_prob)}"></i>`;
+    }).join("") || '<span class="muted">No voice checks yet.</span>';
+    $("sLog").innerHTML = c.log.length ? c.log.slice().reverse().map((l) => `<div class="${l.cls}">${esc(l.text)}</div>`).join("") : "<div>No activity yet.</div>";
+    $("sKill").disabled = !c.live;
+  },
+  async report() {
+    const box = $("sReportBox"); box.hidden = false; box.innerHTML = '<span class="muted">Building report…</span>';
+    try {
+      const r = await api(`/api/calls/${this.sel}/report`, { headers: staffH() });
+      const v = await api("/api/reports/verify", { method: "POST", headers: staffH(), body: r });
+      const flagged = r.flagged_segments.map((f) => `${fmt(f.t_start, 1)}–${fmt(f.t_end, 1)}s ${f.flags.join("/")}`).join(" · ") || "none";
+      box.innerHTML = `<div class="row between"><b>${esc(r.verdict.label)}</b><span class="pill ${v.valid ? "" : "bad"}">${v.valid ? "signature valid" : "TAMPERED"}</span></div>
+        <div class="muted">Flagged: ${esc(flagged)}</div>
+        <div class="muted">Executed: ${esc(r.verdict.actions_executed.join(", ") || "none")} · Refused: ${esc(r.verdict.actions_refused.join(", ") || "none")}</div>
+        ${r.verdict.reasons.length ? `<div style="font-size:.85rem">${esc(r.verdict.reasons.join("; "))}</div>` : ""}
+        <div class="muted" style="font-family:var(--mono);font-size:.72rem;overflow-wrap:anywhere">sha256 ${esc(r.integrity.sha256)}</div>
+        <audio id="sAudio" controls style="width:100%"></audio>`;
+      try { const a = await fetch(`/api/calls/${this.sel}/recording`, { headers: staffH() }); if (a.ok) $("sAudio").src = URL.createObjectURL(await a.blob()); else $("sAudio").remove(); } catch {}
+    } catch (e) { box.innerHTML = `<span class="muted">${esc(e.message)}</span>`; }
+  },
+};
+function riskCls(r) { return r === "fraud" || r === "suspicious" ? "bad" : r === "uncertain" ? "warn" : r === "trusted" ? "" : "grey"; }
+$("dCalls").addEventListener("click", (e) => { const it = e.target.closest("[data-call]"); if (it) Desk.select(it.dataset.call); });
+$("dCalls").addEventListener("keydown", (e) => { if (e.key === "Enter") { const it = e.target.closest("[data-call]"); if (it) Desk.select(it.dataset.call); } });
+$("dTickets").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.call) return Desk.select(b.dataset.call);
+  try { await api(`/api/tickets/${b.dataset.t}`, { method: "PATCH", headers: staffH(), body: { status: b.dataset.s, lock_customer_voice: b.dataset.s === "confirmed_fraud", note: "from dashboard" } }); toast("Ticket updated"); Desk.loadTickets(); } catch (er) { toast(er.message); }
+});
+$("dRefresh").onclick = () => { Desk.loadCalls(); Desk.loadTickets(); };
+$("sReport").onclick = () => Desk.report();
+$("sKill").onclick = async () => { try { await api(`/api/calls/${Desk.sel}/terminate`, { method: "POST", headers: staffH() }); toast("Call ended by fraud desk"); } catch (e) { toast(e.message); } };
+$("dAudit").onclick = async () => { try { const r = await api("/api/audit/verify", { headers: staffH() }); toast(r.valid ? `Audit log intact (${r.entries} entries)` : `Audit log TAMPERED at entry ${r.broken_at_seq}`); } catch (e) { toast(e.message); } };
+$("dReset").onclick = async () => {
+  if ($("dReset").dataset.armed !== "1") { $("dReset").dataset.armed = "1"; $("dReset").textContent = "Click again to wipe all data"; setTimeout(() => { $("dReset").dataset.armed = ""; $("dReset").textContent = "Reset demo bank"; }, 4000); return; }
+  try { await api("/api/demo/reset", { method: "POST", headers: staffH() }); Desk.calls.clear(); Desk.sel = null; Desk.renderCalls(); $("sLog").innerHTML = ""; toast("Demo bank reset"); Desk.loadTickets(); Phone.reopen(); }
+  catch (e) { toast(e.message); }
+  $("dReset").dataset.armed = ""; $("dReset").textContent = "Reset demo bank";
+};
+
+// ---------------------------------------------------------------- knowledge & rag
+const Knowledge = {
+  activeRun: null,
+  pollTimer: null,
+  async open() {
+    await Promise.all([this.loadStats(), this.loadClaims()]);
+  },
+  async loadStats() {
+    try {
+      const s = await api("/api/knowledge/stats");
+      $("kbStatsPill").textContent = `${s.documents} docs · ${s.chunks} chunks · ${s.claims} claims`;
+      $("kbStatsPill").className = "pill";
+    } catch (e) {
+      $("kbStatsPill").textContent = "KB Error";
+    }
+  },
+  async loadClaims() {
+    try {
+      const r = await api("/api/knowledge/claims?limit=40");
+      this.renderClaims(r.claims || []);
+    } catch (e) {
+      $("kbClaimsList").innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+  },
+  renderClaims(claims) {
+    if (!claims.length) {
+      $("kbClaimsList").innerHTML = '<div class="empty">No claims indexed yet. Run research or scrape a URL above.</div>';
+      return;
+    }
+    $("kbClaimsList").innerHTML = claims.map((c) => {
+      const kindCls = c.kind === "risk" ? "bad" : c.kind === "opportunity" ? "" : "grey";
+      const authPercent = Math.round(c.authority * 100);
+      return `<div class="item" style="font-size:.85rem">
+        <div class="row between">
+          <div class="row" style="gap:4px">
+            <span class="pill ${kindCls}" style="font-size:.68rem">${esc(c.kind.toUpperCase())}</span>
+            <span class="pill grey" style="font-size:.68rem">${esc(c.epistemic)}</span>
+          </div>
+          <span class="muted" style="font-size:.75rem">${esc(c.domain || "knowledge")} · ${authPercent}% auth</span>
+        </div>
+        <div>${esc(c.text)}</div>
+      </div>`;
+    }).join("");
+  },
+  async ask(q) {
+    q = (q || "").trim();
+    if (!q) return;
+    $("ragStatus").textContent = "Retrieving & verifying...";
+    $("ragStatus").className = "pill warn";
+    $("ragSubmit").disabled = true;
+    try {
+      const res = await api("/api/knowledge/ask", {
+        method: "POST",
+        body: { question: q }
+      });
+      $("ragResults").hidden = false;
+      const srcLabel = res.researched ? "Researched via Web Agent" : "Vector DB (Grounded)";
+      $("ragStatus").textContent = `${srcLabel} · Zero Hallucination`;
+      $("ragStatus").className = res.researched ? "pill warn" : "pill";
+
+
+      $("ragSpoken").textContent = res.spoken_summary || "Answer retrieved from banking knowledge base.";
+
+      const verif = res.verification || {};
+      const sup = verif.supported || 0;
+      const tot = (verif.supported || 0) + (verif.partial || 0) + (verif.unsupported || 0);
+      $("ragVerifBadge").textContent = `${sup}/${tot} Supported`;
+      $("ragVerifBadge").className = sup === tot && tot > 0 ? "pill" : "pill warn";
+
+      $("ragSentences").innerHTML = (res.answer || []).map((a) => {
+        const rCls = a.ruling === "supported" ? "" : a.ruling === "partial" ? "warn" : "bad";
+        const citesHtml = (a.cites || []).map((cid) => `<span class="pill grey" style="cursor:pointer;font-family:var(--mono);padding:1px 6px" onclick="Knowledge.highlightEv('${esc(cid)}')">[${esc(cid)}]</span>`).join(" ");
+        return `<div class="item" style="border-left:4px solid var(--accent)">
+          <div class="row between">
+            <span style="flex:1">${esc(a.text)}</span>
+            <span class="pill ${rCls}" style="font-size:.7rem">${esc(a.ruling || "citation")}</span>
+          </div>
+          ${citesHtml ? `<div class="row" style="margin-top:2px;gap:4px"><span class="lbl" style="font-size:.65rem">Cites:</span> ${citesHtml}</div>` : ""}
+        </div>`;
+      }).join("");
+
+      const ev = res.evidence || [];
+      $("ragEvCount").textContent = ev.length;
+      $("ragEvidenceList").innerHTML = ev.map((item) => {
+        const authPill = item.authority >= 0.9 ? '<span class="pill" style="font-size:.68rem">Official 1.0</span>' : item.authority >= 0.7 ? '<span class="pill warn" style="font-size:.68rem">News/Research</span>' : '<span class="pill grey" style="font-size:.68rem">Standard</span>';
+        return `<div id="ev-${esc(item.id)}" class="item" style="font-size:.82rem">
+          <div class="row between">
+            <div class="row" style="gap:6px">
+              <span class="code" style="font-size:.85rem;color:var(--accent)">[${esc(item.id)}]</span>
+              <span class="pill grey" style="font-size:.68rem">${esc(item.kind)}</span>
+              ${authPill}
+            </div>
+            <span class="muted">${esc(item.domain)}</span>
+          </div>
+          <div>${esc(item.text)}</div>
+          ${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener" class="muted" style="font-size:.72rem;text-decoration:underline">${esc(item.url.slice(0, 50))}...</a>` : ""}
+        </div>`;
+      }).join("");
+    } catch (e) {
+      toast("RAG failed: " + e.message);
+      $("ragStatus").textContent = "Error";
+      $("ragStatus").className = "pill bad";
+    } finally {
+      $("ragSubmit").disabled = false;
+    }
+  },
+  highlightEv(cid) {
+    const el = $("ev-" + cid);
+    if (el) {
+      $("ragEvidenceDetails").open = true;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.style.boxShadow = "0 0 0 3px var(--accent)";
+      setTimeout(() => { el.style.boxShadow = ""; }, 2500);
+    }
+  },
+  async startResearch(query) {
+    query = (query || "").trim();
+    if (!query) return;
+    $("researchBtn").disabled = true;
+    $("researchProgress").hidden = false;
+    $("researchProgress").innerHTML = `<div>Launching autonomous research on "${esc(query)}"...</div>`;
+    try {
+      const res = await api("/api/knowledge/research", { method: "POST", body: { query } });
+      this.activeRun = res.run_id;
+      this.pollResearch(res.run_id);
+    } catch (e) {
+      toast("Research start failed: " + e.message);
+      $("researchBtn").disabled = false;
+    }
+  },
+  async pollResearch(rid) {
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    this.pollTimer = setInterval(async () => {
+      try {
+        const snap = await api(`/api/knowledge/runs/${rid}`);
+        const events = snap.events || [];
+        $("researchProgress").innerHTML = events.map((ev) => {
+          const cls = ev.status === "failed" ? "bad" : ev.status === "done" ? "ok" : "warn";
+          return `<div class="${cls}"><b>[${esc(ev.stage)}]</b> ${esc(ev.title)}: ${esc(ev.summary)}</div>`;
+        }).join("");
+        $("researchProgress").scrollTop = $("researchProgress").scrollHeight;
+
+        if (snap.status === "completed" || snap.status === "failed") {
+          clearInterval(this.pollTimer);
+          this.pollTimer = null;
+          $("researchBtn").disabled = false;
+          toast(snap.status === "completed" ? "Research run completed and indexed" : "Research run failed");
+          this.loadStats();
+          this.loadClaims();
+        }
+      } catch (e) {
+        clearInterval(this.pollTimer);
+        this.pollTimer = null;
+        $("researchBtn").disabled = false;
+      }
+    }, 1500);
+  },
+  async scrapeUrl(url) {
+    url = (url || "").trim();
+    if (!url) return;
+    $("scrapeBtn").disabled = true;
+    $("scrapeResult").hidden = false;
+    $("scrapeResult").textContent = "Scraping page and extracting claims...";
+    try {
+      const res = await api("/api/knowledge/scrape", { method: "POST", body: { url } });
+      $("scrapeResult").innerHTML = `<span class="pill">Done</span> Indexed <b>${esc(res.title || res.domain)}</b>: ${res.chunks} chunks, ${res.claims} claims (${(res.chars || 0).toLocaleString()} chars).`;
+      toast("Page scraped and indexed into KB");
+      this.loadStats();
+      this.loadClaims();
+    } catch (e) {
+      $("scrapeResult").innerHTML = `<span class="pill bad">Failed</span> ${esc(e.message)}`;
+      toast("Scrape error: " + e.message);
+    } finally {
+      $("scrapeBtn").disabled = false;
+    }
+  }
+};
+
+$("ragForm").onsubmit = (e) => {
+  e.preventDefault();
+  Knowledge.ask($("ragInput").value);
+};
+$("quickQueries").onclick = (e) => {
+  const b = e.target.closest("button");
+  if (!b || !b.dataset.q) return;
+  $("ragInput").value = b.dataset.q;
+  Knowledge.ask(b.dataset.q);
+};
+$("researchForm").onsubmit = (e) => {
+  e.preventDefault();
+  Knowledge.startResearch($("researchInput").value);
+};
+$("scrapeForm").onsubmit = (e) => {
+  e.preventDefault();
+  Knowledge.scrapeUrl($("scrapeInput").value);
+};
+$("refreshKbBtn").onclick = () => {
+  Knowledge.loadStats();
+  Knowledge.loadClaims();
+  toast("Knowledge base refreshed");
+};
+
+// ---------------------------------------------------------------- boot
+(async function boot() {
+  await loadCustomers();
+  const c = cust(); if (c.lang) $("lang").value = c.lang;
+  Enroll.load();
+  const tab = store.get("tab", "call");
+  showTab(["call", "phone", "desk", "knowledge"].includes(tab) ? tab : "call");
+})();
+</script>
+
+</body>
+</html>

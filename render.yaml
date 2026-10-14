@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: unclone-voice-guard
+    runtime: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: demo
+      - key: VOICE_PRIMARY
+        value: detectifai
+      - key: VOICE_FALLBACK
+        value: local
+      - key: STT_PROVIDER
+        value: groq
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: STAFF_API_KEY
+        generateValue: true
+      - key: AUDIT_HMAC_SECRET
+        generateValue: true

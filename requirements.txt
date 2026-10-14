@@ -1,0 +1,28 @@
+# Python 3.11 or 3.12 recommended (3.10-3.13 work).
+# Install torch FIRST from the CPU index (setup.bat does this):
+#   pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic>=2.10,<3
+pydantic-settings==2.9.1
+SQLAlchemy==2.0.40
+aiosqlite==0.21.0
+httpx==0.28.1
+python-multipart==0.0.20
+numpy>=1.26,<2.3
+scipy>=1.13,<2
+soundfile==0.13.1
+imageio-ffmpeg==0.6.0
+webrtcvad-wheels==2.0.14
+rapidfuzz==3.13.0
+# keep edge-tts current: Microsoft rejects old versions with HTTP 403
+edge-tts>=7.3.1
+faster-whisper==1.1.1
+av==14.2.0
+speechbrain==1.0.3
+transformers==4.51.3
+huggingface-hub>=0.30,<1.0
+websockets>=13
+trafilatura>=2.3.0
+lxml>=5.0.0
+
