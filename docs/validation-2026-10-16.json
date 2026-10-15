@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-16",
+  "implementation_commit": "4c75dbc",
+  "python": {
+    "passed": 156,
+    "skipped_optional_models": 4
+  },
+  "chromium_scenarios": {
+    "passed": 7
+  },
+  "webcrypto": {
+    "receipt_checks_passed": 8,
+    "existing_security_checks_passed": 6
+  },
+  "adversarial_harness": {
+    "passed": 17,
+    "failed": 0,
+    "simulation": true,
+    "model_benchmark": false
+  },
+  "audio_memory_stress": {
+    "status": "passed",
+    "simulation": true,
+    "model_benchmark": false,
+    "duration_s": 15.6,
+    "concurrent_sessions": 3,
+    "turn_count": 12,
+    "peak_rss_mib": 245.94,
+    "preloaded_audio_seconds_per_session": 1200,
+    "memory_measurement": "sum of process peak working sets, including venv children and disconnect cleanup (Windows); sampled RSS on Linux",
+    "latency_p50_ms": 78.0,
+    "latency_p95_ms": 2578.0,
+    "total_elapsed_s": 20.3,
+    "limitations": "Local Windows cloud-only profile; providers disabled. Does not establish hosted memory, audio latency or DetectifAI performance."
+  },
+  "hosted_http": {
+    "new_build": true,
+    "health": 200,
+    "issuer": "https://nishabdha.onrender.com",
+    "origin_correct": true,
+    "verifier": 200,
+    "staff_unauthenticated": 401,
+    "customer_unauthenticated": 401
+  },
+  "hosted_authority": {
+    "status": "passed",
+    "origin": "https://nishabdha.onrender.com",
+    "typed_transfer": "held",
+    "balance_unchanged": true,
+    "signature_verified": true,
+    "other_customer": 404,
+    "capture_mode": "typed",
+    "banking_mode": "simulated",
+    "events": [
+      "transcript",
+      "authority_state"
+    ],
+    "elapsed_s": 3.62,
+    "limitations": "One hosted typed request; no voice provider or physical passkey benchmark."
+  },
+  "hosted_browser": {
+    "status": "passed",
+    "receipt_signature": "verified",
+    "tampered_payload": "rejected",
+    "verification_network_requests": 0,
+    "page_errors": 0
+  },
+  "limitations": [
+    "No live DetectifAI benchmark: participant API contract and access are pending.",
+    "Local browser passkeys use virtual authenticators; hosted physical passkeys still need rehearsal.",
+    "Local Windows memory and provider-disabled application latency do not establish hosted memory or speech performance."
+  ],
+  "session_rehearsal": {
+    "status": "passed",
+    "simulation": true,
+    "model_benchmark": false,
+    "duration_s": 1800.0,
+    "concurrent_sessions": 3,
+    "turn_count": 534,
+    "peak_rss_mib": 100.27,
+    "latency_p50_ms": 32.0,
+    "latency_p95_ms": 78.0,
+    "total_elapsed_s": 1802.9,
+    "limitations": "Local Windows cloud-only profile; providers disabled. Does not establish hosted memory, audio latency or DetectifAI performance.",
+    "memory_measurement": "Maximum sampled aggregate server process-tree RSS, including Windows venv children.",
+    "measurement_context": "Started during integration; final recording-save path was separately stress-tested, and final application changes passed the functional and hosted checks."
+  }
+}

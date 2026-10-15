@@ -9,7 +9,11 @@
 - Production TypeScript/Vite build passed. Critical Python syntax/undefined-name checks passed. No new runtime dependencies were introduced.
 - Audio memory stress: three WebSocket sessions each received **1,200 seconds of synthetic silent PCM**, accelerated, then saved recordings on disconnect. The original recording conversion exceeded the **400 MiB** test budget; direct PCM-to-WAV saving passed with **245.94 MiB** peak aggregate process working sets including venv children and cleanup. Fifteen measured seconds produced 12 typed responses, p50 **78 ms**, p95 **2,578 ms**, including initial buffer-processing backlog. These are local Windows application measurements with providers disabled, not voice/model or hosted benchmarks. Raw output: `data/audio-memory-stress.json`.
 
-The thirty-minute session rehearsal is recorded separately after completion. Live DetectifAI integration and a physical hosted passkey remain dependent on sponsor access and deployed-origin validation.
+Hosted smoke checks passed on `https://nishabdha.onrender.com` after deploying implementation commit `4c75dbc`: new compiled UI and independent verifier returned 200; bank issuer matched the HTTPS origin; unauthenticated customer/staff decision routes returned 401. A typed transfer was held, its balance remained unchanged, its signed receipt verified under the deployed key, and another customer received 404 for that receipt. Headless Chromium verified the hosted receipt, rejected a tampered copy and made zero verification network requests, with no page errors. This is a single hosted authorization smoke test, not an availability or model benchmark.
+
+The **30-minute session rehearsal passed**: 1,800 seconds, three concurrent WebSocket sessions, **534 typed responses**, unchanged balances and preserved live sessions. Maximum sampled aggregate server process-tree RSS was **100.27 MiB**, with p50 **32 ms** and p95 **78 ms** application response latency. Providers were disabled. This long run began during integration; the final recording-save path was separately stress-tested, and final changes passed the functional and hosted checks above. These local Windows results do not establish hosted memory, speech latency or DetectifAI accuracy.
+
+Live DetectifAI integration and a physical hosted passkey remain dependent on sponsor access and deployed-origin validation. Machine-readable results: [validation-2026-10-16.json](validation-2026-10-16.json).
 
 ## Earlier implementation validation
 
