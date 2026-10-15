@@ -152,6 +152,11 @@ details summary{cursor:pointer;font-weight:700}
     <div id="pBalance" class="notif"></div>
     <div id="pNotifs" class="list"><div class="empty">Approvals and alerts from the bank appear here.</div></div>
     <button id="pCheckBank" class="ghost">Is the bank calling me right now?</button>
+    <button id="provisionPasskey" class="ghost">Set up passkey with bank staff</button>
+    <button id="delegateDemo" class="ghost">Authorize support assistant demo</button>
+    <button id="runDelegate" hidden>Run authorized AI ticket demo</button>
+    <button id="revokeDelegate" class="danger" hidden>Revoke assistant permission</button>
+    <div id="securityStatus" class="muted" role="status"></div>
   </div>
   <div class="card">
     <h2>Voice ID</h2>
@@ -326,7 +331,7 @@ async function api(path, { method = "GET", body, headers = {}, form } = {}) {
   const r = await fetch(path, { method, headers: h, body: form ?? (body !== undefined ? JSON.stringify(body) : undefined) });
   const txt = await r.text();
   let data; try { data = txt ? JSON.parse(txt) : {}; } catch { data = { detail: txt }; }
-  if (!r.ok) { const d = data.detail; throw new Error(typeof d === "string" ? d : d?.message || JSON.stringify(d) || r.statusText); }
+  if (!r.ok) { const d = data.detail; const error = new Error(typeof d === "string" ? d : d?.message || JSON.stringify(d) || r.statusText); error.status = r.status; throw error; }
   return data;
 }
 const staffH = () => ({ "X-Staff-Key": staffKey() });
@@ -560,7 +565,7 @@ const Phone = {
   async loadPending() {
     try {
       const p = await api("/api/app/pending", { headers: appH() });
-      p.stepups.forEach((s) => this.on("stepup_request", { stepup_id: s.stepup_id, action: s.action || "Confirm a request on your call", code: null }));
+      p.stepups.forEach((s) => this.on("stepup_request", { ...s, action: s.action || "Confirm a request on your call", code: null }));
       if (p.bank_call) this.on("incoming_bank_call", p.bank_call);
     } catch {}
   },
@@ -578,13 +583,13 @@ const Phone = {
       n.dataset.stepup = d.stepup_id;
       n.querySelectorAll("button").forEach((b) => (b.onclick = async () => {
         n.querySelectorAll("button").forEach((x) => (x.disabled = true));
-        try { const r = await api(`/api/app/stepups/${d.stepup_id}/${b.dataset.act}`, { method: "POST", headers: appH() });
-          n.querySelector(".row").innerHTML = `<span class="pill ${r.status === "approved" ? "" : "bad"}">${esc(r.status)}</span>`; this.loadMe();
+        try { const r = b.dataset.act === "approve" ? await Security.approve(d.stepup_id) : await api(`/api/app/stepups/${d.stepup_id}/deny`, { method: "POST", headers: appH() });
+          n.querySelector(".row").innerHTML = `<span class="pill ${["approved","executed"].includes(r.status) ? "" : "bad"}">${esc(r.status)}</span>`; this.loadMe();
         } catch (e) { n.querySelector(".row").innerHTML = `<span class="pill grey">${esc(e.message)}</span>`; }
       }));
     } else if (ev === "incoming_bank_call" || ev === "bank_call_verification") {
-      this.add(`<div class="lbl">${ev === "incoming_bank_call" ? "Unclone Bank is calling you" : "Yes, this call is from Unclone Bank"}</div>
-        <div class="muted">The agent will say this code:</div><div class="code">${esc(d.code)}</div>
+      this.add(`<div class="lbl">Bank session notice — verify its signature below</div>
+        <div class="muted">Session matching aid (not identity proof):</div><div class="code">${esc(d.code)}</div>
         ${d.reason ? `<div class="muted">${esc(d.reason)}</div>` : ""}
         <div class="row"><button class="ghost" data-v="confirm">Codes match</button><button class="danger" data-v="report">Code is different</button></div>`, "bank")
         .querySelectorAll("button").forEach((b) => (b.onclick = async () => {
@@ -686,6 +691,9 @@ const Desk = {
         <div style="font-size:.85rem">${esc((t.reasons || []).join("; "))}</div>
         <div class="row">${t.status === "open" ? `<button data-t="${esc(t.id)}" data-s="confirmed_fraud">Confirm fraud + lock voice</button><button class="ghost" data-t="${esc(t.id)}" data-s="false_positive">False alarm</button>` : ""}
         <button class="ghost" data-call="${esc(t.call_id)}">Open call</button></div></div>`).join("") : '<div class="empty">No tickets.</div>';
+      const a = await api("/api/agents/support-tickets", {headers: staffH()});
+      $("dTickets").insertAdjacentHTML("beforeend", a.tickets.map(t => `<div class="item"><span class="pill">Authorized AI support ticket</span><div>${esc(t.subject)}</div><div class="muted">${esc(t.id)} · ${esc(t.customer_id)}</div></div>`).join("") +
+        a.decisions.map(d => `<div class="item"><span class="pill ${d.outcome === "denied" ? "warn" : ""}">AI ${esc(d.outcome)}</span> ${esc(d.action)}<div class="muted">${esc(d.reason || d.ticket_id || "")}</div></div>`).join(""));
     } catch {}
   },
   renderCalls() {
@@ -725,6 +733,7 @@ const Desk = {
     else if (ev === "pressure_detected") L("warn", `Pressure tactics (${fmt(d.score)}): ${(d.cues || []).join(", ")}`);
     else if (ev === "action_executed") L("ok", "Done: " + (d.result?.summary || d.intent));
     else if (ev === "action_refused") L("bad", "Refused: " + (d.reasons || []).join("; "));
+    else if (ev === "action_held") L("warn", "Held: " + d.reason);
     else if (ev === "ticket_created") L("bad", `Ticket opened (${d.severity})`);
     else if (ev === "protective_freeze") L("ok", "Card frozen instantly (protective)");
     if (c.log.length > 200) c.log.splice(0, c.log.length - 200);
@@ -921,7 +930,7 @@ const Knowledge = {
     $("researchProgress").hidden = false;
     $("researchProgress").innerHTML = `<div>Launching autonomous research on "${esc(query)}"...</div>`;
     try {
-      const res = await api("/api/knowledge/research", { method: "POST", body: { query } });
+      const res = await api("/api/knowledge/research", { method: "POST", headers: staffH(), body: { query } });
       this.activeRun = res.run_id;
       this.pollResearch(res.run_id);
     } catch (e) {
@@ -933,7 +942,7 @@ const Knowledge = {
     if (this.pollTimer) clearInterval(this.pollTimer);
     this.pollTimer = setInterval(async () => {
       try {
-        const snap = await api(`/api/knowledge/runs/${rid}`);
+        const snap = await api(`/api/knowledge/runs/${rid}`, {headers: staffH()});
         const events = snap.events || [];
         $("researchProgress").innerHTML = events.map((ev) => {
           const cls = ev.status === "failed" ? "bad" : ev.status === "done" ? "ok" : "warn";
@@ -945,7 +954,7 @@ const Knowledge = {
           clearInterval(this.pollTimer);
           this.pollTimer = null;
           $("researchBtn").disabled = false;
-          toast(snap.status === "completed" ? "Research run completed and indexed" : "Research run failed");
+          toast(snap.status === "completed" ? "Source discovery completed; staff review is required before publication" : "Research run failed");
           this.loadStats();
           this.loadClaims();
         }
@@ -963,9 +972,22 @@ const Knowledge = {
     $("scrapeResult").hidden = false;
     $("scrapeResult").textContent = "Scraping page and extracting claims...";
     try {
-      const res = await api("/api/knowledge/scrape", { method: "POST", body: { url } });
-      $("scrapeResult").innerHTML = `<span class="pill">Done</span> Indexed <b>${esc(res.title || res.domain)}</b>: ${res.chunks} chunks, ${res.claims} claims (${(res.chars || 0).toLocaleString()} chars).`;
-      toast("Page scraped and indexed into KB");
+      const res = await api("/api/knowledge/scrape", { method: "POST", headers: staffH(), body: { url } });
+      $("scrapeResult").innerHTML = `<span class="pill warn">Pending staff review</span><div>${esc(res.url)}</div><button id="reviewSource">Inspect fetched source</button>`;
+      $("reviewSource").onclick = async () => {
+        try {
+          const source = await api(`/api/knowledge/quarantine/${res.id}`, {headers:staffH()});
+          $("scrapeResult").innerHTML = `<span class="pill warn">Review before publishing</span><div>${esc(source.url)}</div><pre style="white-space:pre-wrap;max-height:320px;overflow:auto">${esc(source.text)}</pre><button id="publishSource">Approve this exact source text</button>`;
+          $("publishSource").onclick = async () => {
+            try {
+              await api(`/api/knowledge/quarantine/${res.id}/approve`, {method:"POST",headers:staffH(),body:{text_hash:source.text_hash}});
+              $("scrapeResult").textContent="Reviewed source published to the knowledge base.";
+              this.loadStats();
+            } catch(e) { toast(e.message); }
+          };
+        } catch(e) { toast(e.message); }
+      };
+      toast("Source quarantined; it is not used in caller answers yet");
       this.loadStats();
       this.loadClaims();
     } catch (e) {
@@ -1010,6 +1032,7 @@ $("refreshKbBtn").onclick = () => {
   showTab(["call", "phone", "desk", "knowledge"].includes(tab) ? tab : "call");
 })();
 </script>
+<script src="/static/security.js"></script>
 
 </body>
 </html>

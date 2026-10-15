@@ -1,4 +1,6 @@
-# 🚀 Zero-Cost Cloud Deployment Guide: UNCLONE Voice Banking Guard
+# Deployment notes: Nishabdha
+
+The security update requires one worker, persistent SQLite storage and a persistent bank signing key. Set `BANK_ORIGIN` to the exact HTTPS application origin and `WEBAUTHN_RP_ID` to its hostname before registering passkeys. Staff provisioning and strong staff/audit secrets are required. Review [SECURITY.md](docs/SECURITY.md) and provider hosting terms before deploying; the historical free-tier examples below are not verified pricing or availability guarantees.
 
 This guide explains how to deploy **UNCLONE Voice Banking Guard** (with continuous deepfake detection, voice biometric verification, autonomous threat research, web scraping, and grounded RAG) **completely for free**.
 

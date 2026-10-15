@@ -1,4 +1,5 @@
 """Web discovery providers: DuckDuckGo (HTML), Wikipedia API, and SerpApi with rate pacing and caching."""
+
 from __future__ import annotations
 
 import asyncio
@@ -8,6 +9,7 @@ import json
 import logging
 import re
 import time
+from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 import httpx
@@ -45,7 +47,9 @@ async def search_duckduckgo(query: str, max_results: int = 8) -> list[dict]:
         },
         follow_redirects=True,
     ) as client:
-        resp = await client.post("https://html.duckduckgo.com/html/", data={"q": query, "kl": "in-en"})
+        resp = await client.post(
+            "https://html.duckduckgo.com/html/", data={"q": query, "kl": "in-en"}
+        )
         if resp.status_code != 200:
             log.warning("DuckDuckGo returned HTTP %d for '%s'", resp.status_code, query)
             return []
@@ -54,6 +58,7 @@ async def search_duckduckgo(query: str, max_results: int = 8) -> list[dict]:
     # Try parsing via lxml
     try:
         from lxml import html as LH
+
         doc = LH.fromstring(resp.text)
         for div in doc.xpath('//div[contains(@class,"result__body")]'):
             a = div.xpath('.//a[contains(@class,"result__a")]')
@@ -65,17 +70,23 @@ async def search_duckduckgo(query: str, max_results: int = 8) -> list[dict]:
             if not href.startswith("http") or "duckduckgo.com" in href:
                 continue
             snip = div.xpath('.//*[contains(@class,"result__snippet")]')
-            results.append({
-                "url": href,
-                "title": a[0].text_content().strip(),
-                "snippet": snip[0].text_content().strip() if snip else "",
-            })
+            results.append(
+                {
+                    "url": href,
+                    "title": a[0].text_content().strip(),
+                    "snippet": snip[0].text_content().strip() if snip else "",
+                }
+            )
             if len(results) >= max_results:
                 break
     except Exception as e:
         log.warning("lxml parsing failed (%s), attempting regex fallback", e)
         # Regex fallback
-        blocks = re.findall(r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>.*?<a[^>]+class="result__snippet"[^>]*>(.*?)</a>', resp.text, re.S)
+        blocks = re.findall(
+            r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>.*?<a[^>]+class="result__snippet"[^>]*>(.*?)</a>',
+            resp.text,
+            re.S,
+        )
         for href, title_html, snip_html in blocks:
             if "uddg=" in href:
                 href = unquote(parse_qs(urlparse(href).query).get("uddg", [""])[0])
@@ -91,7 +102,9 @@ async def search_duckduckgo(query: str, max_results: int = 8) -> list[dict]:
 
 async def search_wikipedia(query: str, max_results: int = 5) -> list[dict]:
     """Wikipedia OpenSearch API for definitions and background knowledge."""
-    async with httpx.AsyncClient(timeout=10.0, headers={"User-Agent": BROWSER_UA}) as client:
+    async with httpx.AsyncClient(
+        timeout=10.0, headers={"User-Agent": BROWSER_UA}
+    ) as client:
         resp = await client.get(
             "https://en.wikipedia.org/w/api.php",
             params={
@@ -117,7 +130,9 @@ async def search_wikipedia(query: str, max_results: int = 5) -> list[dict]:
     return []
 
 
-async def search_web(query: str, max_results: int = 8, use_cache: bool = True) -> list[dict]:
+async def search_web(
+    query: str, max_results: int = 8, use_cache: bool = True
+) -> list[dict]:
     """Unified search: cache -> DuckDuckGo -> Wikipedia fallback."""
     key = f"web:{query}"
     cpath = _cache_path(key)
@@ -153,7 +168,12 @@ async def search_web(query: str, max_results: int = 8, use_cache: bool = True) -
 
     if deduped:
         try:
-            cpath.write_text(json.dumps({"cached_at": time.time(), "results": deduped}, ensure_ascii=False), encoding="utf-8")
+            cpath.write_text(
+                json.dumps(
+                    {"cached_at": time.time(), "results": deduped}, ensure_ascii=False
+                ),
+                encoding="utf-8",
+            )
         except Exception:
             pass
 

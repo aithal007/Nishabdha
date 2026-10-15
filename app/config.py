@@ -1,4 +1,5 @@
 """Central configuration. Every value can be overridden in `.env` or environment variables."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -12,7 +13,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     # ---------------- App ----------------
     app_name: str = "UNCLONE Voice Banking Guard"
@@ -20,11 +23,15 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     cors_origins: str = "*"  # comma separated
-    staff_api_key: str = "change-me-staff-key"  # fraud-desk / admin endpoints (header X-Staff-Key)
+    staff_api_key: str = (
+        "change-me-staff-key"  # fraud-desk / admin endpoints (header X-Staff-Key)
+    )
     audit_hmac_secret: str = "change-me-audit-secret"  # signs the audit hash chain
     data_dir: Path = BASE_DIR / "data"
     database_url: str = ""  # default -> sqlite file in data_dir
     log_level: str = "INFO"
+    bank_origin: str = "http://localhost:8000"
+    webauthn_rp_id: str = "localhost"
 
     # ---------------- LLM ----------------
     llm_provider: Literal["groq", "openai", "anthropic", "gemini", "none"] = "groq"
@@ -44,7 +51,9 @@ class Settings(BaseSettings):
 
     # ---------------- Text-to-speech ----------------
     tts_provider: Literal["edge", "none"] = "edge"
-    tts_timeout_s: float = 15.0  # slow venue Wi-Fi: edge-tts can take >8 s for the first byte
+    tts_timeout_s: float = (
+        15.0  # slow venue Wi-Fi: edge-tts can take >8 s for the first byte
+    )
     tts_voice_en: str = "en-IN-NeerjaNeural"
     tts_voice_hi: str = "hi-IN-SwaraNeural"
     tts_voice_kn: str = "kn-IN-SapnaNeural"
@@ -93,9 +102,13 @@ class Settings(BaseSettings):
     chunk_seconds: float = 3.0  # speech seconds per continuous voice check
     min_chunk_seconds: float = 1.5
     trust_allow: float = 0.72  # >= allow (tier 2 also needs liveness)
-    trust_stepup: float = 0.45  # between stepup and allow -> step-up; below -> refuse for tier 2
+    trust_stepup: float = (
+        0.45  # between stepup and allow -> step-up; below -> refuse for tier 2
+    )
     tier1_min_trust: float = 0.5
-    speaker_reject: float = 0.30  # speaker prob below this on challenge audio = mismatch
+    speaker_reject: float = (
+        0.30  # speaker prob below this on challenge audio = mismatch
+    )
     synthetic_hard: float = 0.80  # P(fake) at/above -> synthetic flag (hard refuse)
     synthetic_soft: float = 0.55  # suspicious -> step-up
     pressure_boost: float = 0.10  # extra trust required under pressure tactics
@@ -107,8 +120,12 @@ class Settings(BaseSettings):
     challenge_digits: int = 4
     challenge_ttl_s: float = 30.0
     challenge_max_attempts: int = 2
-    challenge_slow_latency_s: float = 4.0  # response onset slower than this = suspicious
-    challenge_min_latency_s: float = 0.15  # faster than this = audio started before prompt (replay)
+    challenge_slow_latency_s: float = (
+        4.0  # response onset slower than this = suspicious
+    )
+    challenge_min_latency_s: float = (
+        0.15  # faster than this = audio started before prompt (replay)
+    )
 
     # Step-up / OTP
     otp_ttl_s: float = 120.0
@@ -138,7 +155,10 @@ class Settings(BaseSettings):
 
     @property
     def db_url(self) -> str:
-        return self.database_url or f"sqlite+aiosqlite:///{(self.data_dir / 'unclone.db').as_posix()}"
+        return (
+            self.database_url
+            or f"sqlite+aiosqlite:///{(self.data_dir / 'unclone.db').as_posix()}"
+        )
 
     @property
     def cors_list(self) -> list[str]:
@@ -149,7 +169,9 @@ class Settings(BaseSettings):
         return [m.strip() for m in self.local_spoof_models.split(",") if m.strip()]
 
     def voice_for(self, lang: str) -> str:
-        return {"hi": self.tts_voice_hi, "kn": self.tts_voice_kn}.get(lang, self.tts_voice_en)
+        return {"hi": self.tts_voice_hi, "kn": self.tts_voice_kn}.get(
+            lang, self.tts_voice_en
+        )
 
 
 @lru_cache

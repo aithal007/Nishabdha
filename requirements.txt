@@ -25,4 +25,6 @@ huggingface-hub>=0.30,<1.0
 websockets>=13
 trafilatura>=2.3.0
 lxml>=5.0.0
+PyJWT[crypto]>=2.10,<3
+webauthn>=2.5,<3
 

@@ -1,4 +1,5 @@
 """Async SQLAlchemy engine/session. SQLite runs in WAL mode so the dashboard can read while calls write."""
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -57,6 +58,29 @@ async def session_scope() -> AsyncIterator[AsyncSession]:
 
 async def init_db() -> None:
     from app import models  # noqa: F401  (register tables)
+    from app.core import agent_models, security_models  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Additive migration v2: preserve history, invalidate approvals from the old policy.
+    from sqlalchemy import update
+
+    from app.core.security_models import SecurityMigration
+
+    async with session_scope() as db:
+        if await db.get(SecurityMigration, 2) is None:
+            await db.execute(
+                update(models.StepUp)
+                .where(models.StepUp.status == "pending")
+                .values(status="expired")
+            )
+            await db.execute(
+                update(models.ActionRequest)
+                .where(
+                    models.ActionRequest.status.in_(
+                        ["pending", "awaiting_stepup", "awaiting_challenge"]
+                    )
+                )
+                .values(status="cancelled")
+            )
+            db.add(SecurityMigration(version=2))

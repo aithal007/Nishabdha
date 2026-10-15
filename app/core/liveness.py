@@ -1,9 +1,10 @@
 """Random-digit liveness challenge (feature 4).
 
-Why it works: a pre-recorded clip can't contain digits chosen a moment ago, and real-time voice-clone
-pipelines (speech->text->LLM->cloned TTS) add noticeable delay, so we also time the answer.
+Random digits reduce simple prerecorded replay. Response timing is advisory telemetry:
+playback estimates and network delays cannot reliably identify interactive clones.
 Digits are used (not words) because they are robust across English/Hindi/Kannada speech recognition.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -36,7 +37,9 @@ class AnswerEval:
     reasons: list[str] = field(default_factory=list)
 
 
-def evaluate_answer(expected: str, transcript: str, latency_s: float | None, expired: bool) -> AnswerEval:
+def evaluate_answer(
+    expected: str, transcript: str, latency_s: float | None, expired: bool
+) -> AnswerEval:
     s = get_settings()
     heard = extract_digits(transcript)
     if expired:
@@ -48,11 +51,14 @@ def evaluate_answer(expected: str, transcript: str, latency_s: float | None, exp
         ok = False
         reasons.append("too many digits spoken")
     if latency_s is not None and latency_s < -0.5:
-        # speech began well before the prompt finished -> answer was not a response to the prompt
-        return AnswerEval(False, heard, sim, False, [f"answer started {abs(latency_s):.1f}s before the prompt ended (replay?)"])
+        reasons.append(
+            "answer overlapped the estimated prompt playback; timing is advisory"
+        )
     if not ok:
         reasons.append(f"digits did not match (heard '{heard or '-'}')")
         return AnswerEval(False, heard, sim, True, reasons)
     if latency_s is not None and latency_s > s.challenge_slow_latency_s:
-        reasons.append(f"slow response {latency_s:.1f}s")  # not a fail on its own - feeds the decision
+        reasons.append(
+            f"slow response {latency_s:.1f}s"
+        )  # not a fail on its own - feeds the decision
     return AnswerEval(True, heard, sim, False, reasons)

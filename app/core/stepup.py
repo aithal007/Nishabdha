@@ -5,6 +5,7 @@ Rules enforced here:
     module never receives a new mobile number, so it physically cannot send the OTP there
   * codes are stored as HMAC hashes, expire, are single-use and lock after N wrong attempts
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -28,10 +29,19 @@ def new_code(n: int = 6) -> str:
     return "".join(secrets.choice("0123456789") for _ in range(n))
 
 
-async def create_stepup(db: AsyncSession, call_id: str, action_id: str, customer_id: str) -> tuple[StepUp, str]:
+async def create_stepup(
+    db: AsyncSession, call_id: str, action_id: str, customer_id: str
+) -> tuple[StepUp, str]:
     s = get_settings()
     code = new_code(6)
-    st = StepUp(call_id=call_id, action_id=action_id, customer_id=customer_id, channel="registered_app", code_hash="", expires_at=utcnow() + timedelta(seconds=s.otp_ttl_s))
+    st = StepUp(
+        call_id=call_id,
+        action_id=action_id,
+        customer_id=customer_id,
+        channel="registered_app",
+        code_hash="",
+        expires_at=utcnow() + timedelta(seconds=s.otp_ttl_s),
+    )
     db.add(st)
     await db.flush()
     st.code_hash = _hash(st.id, code)
@@ -62,24 +72,49 @@ def check_code(st: StepUp, code: str) -> str:
 
 
 async def active_stepup(db: AsyncSession, stepup_id: str) -> StepUp | None:
-    return (await db.execute(select(StepUp).where(StepUp.id == stepup_id))).scalar_one_or_none()
+    return (
+        await db.execute(select(StepUp).where(StepUp.id == stepup_id))
+    ).scalar_one_or_none()
 
 
-async def create_bank_call_notice(db: AsyncSession, customer_id: str, call_id: str | None, reason: str) -> BankCallNotice:
+async def create_bank_call_notice(
+    db: AsyncSession, customer_id: str, call_id: str | None, reason: str
+) -> BankCallNotice:
     s = get_settings()
     # one active notice per customer: older ones end
-    for old in (await db.execute(select(BankCallNotice).where(BankCallNotice.customer_id == customer_id, BankCallNotice.status == "active"))).scalars():
+    for old in (
+        await db.execute(
+            select(BankCallNotice).where(
+                BankCallNotice.customer_id == customer_id,
+                BankCallNotice.status.in_(("active", "confirmed")),
+            )
+        )
+    ).scalars():
         old.status = "ended"
-    n = BankCallNotice(customer_id=customer_id, call_id=call_id, code=new_code(4), reason=reason[:200], expires_at=utcnow() + timedelta(seconds=s.bank_call_code_ttl_s))
+    n = BankCallNotice(
+        customer_id=customer_id,
+        call_id=call_id,
+        code=new_code(4),
+        reason=reason[:200],
+        expires_at=utcnow() + timedelta(seconds=s.bank_call_code_ttl_s),
+    )
     db.add(n)
     await db.flush()
     return n
 
 
-async def current_bank_call(db: AsyncSession, customer_id: str) -> BankCallNotice | None:
+async def current_bank_call(
+    db: AsyncSession, customer_id: str
+) -> BankCallNotice | None:
     n = (
         await db.execute(
-            select(BankCallNotice).where(BankCallNotice.customer_id == customer_id, BankCallNotice.status == "active").order_by(BankCallNotice.created_at.desc()).limit(1)
+            select(BankCallNotice)
+            .where(
+                BankCallNotice.customer_id == customer_id,
+                BankCallNotice.status.in_(("active", "confirmed")),
+            )
+            .order_by(BankCallNotice.created_at.desc())
+            .limit(1)
         )
     ).scalar_one_or_none()
     if n and n.expires_at < utcnow():

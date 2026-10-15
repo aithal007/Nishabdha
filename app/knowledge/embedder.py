@@ -1,4 +1,5 @@
-"""Deterministic dense vector embedder for semantic search in the local Vector Database."""
+"""Deterministic lexical feature hashing in the local Vector Database."""
+
 from __future__ import annotations
 
 import hashlib
@@ -10,7 +11,7 @@ DIMENSION = 256
 
 
 def get_embedding(text: str, dim: int = DIMENSION) -> list[float]:
-    """Generates a normalized float32 semantic embedding vector for a given text passage."""
+    """Generates a normalized lexical feature vector for a given text passage."""
     text = (text or "").lower().strip()
     if not text:
         return [0.0] * dim
@@ -24,13 +25,13 @@ def get_embedding(text: str, dim: int = DIMENSION) -> list[float]:
     for w in words:
         h = int(hashlib.sha256(w.encode("utf-8")).hexdigest()[:8], 16)
         idx = h % dim
-        # IDF boost for longer, more specific words
+        # Length-based weight (not inverse document frequency)
         weight = 1.0 + min(len(w) * 0.1, 1.5)
         vec[idx] += weight
 
     # 2. Bigram context weights
     for i in range(len(words) - 1):
-        bg = f"{words[i]}_{words[i+1]}"
+        bg = f"{words[i]}_{words[i + 1]}"
         h = int(hashlib.sha256(bg.encode("utf-8")).hexdigest()[:8], 16)
         idx = h % dim
         vec[idx] += 2.0
@@ -39,7 +40,7 @@ def get_embedding(text: str, dim: int = DIMENSION) -> list[float]:
     for w in words:
         if len(w) >= 4:
             for j in range(len(w) - 2):
-                tri = w[j:j+3]
+                tri = w[j : j + 3]
                 h = int(hashlib.sha256(tri.encode("utf-8")).hexdigest()[:8], 16)
                 idx = h % dim
                 vec[idx] += 0.4

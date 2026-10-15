@@ -44,7 +44,19 @@ def test_speak_digits_roundtrip():
         assert extract_digits(speak_digits("7429", lang)) == "7429"
 
 
-@pytest.mark.parametrize("text,val", [("50,000", 50000), ("50k", 50000), ("fifty thousand", 50000), ("1.5 lakh", 150000), ("₹2000", 2000), ("pachaas hazaar", 50000), ("2 लाख", 200000), ("no number", None)])
+@pytest.mark.parametrize(
+    "text,val",
+    [
+        ("50,000", 50000),
+        ("50k", 50000),
+        ("fifty thousand", 50000),
+        ("1.5 lakh", 150000),
+        ("₹2000", 2000),
+        ("pachaas hazaar", 50000),
+        ("2 लाख", 200000),
+        ("no number", None),
+    ],
+)
 def test_parse_amount(text, val):
     assert parse_amount_rupees(text) == val
 
@@ -91,8 +103,15 @@ def test_rule_params():
 
 def test_pressure_lexicon():
     assert lexicon_score("what is my balance").score == 0
-    p = lexicon_score("The police will arrest you, move money to a safe account right now and don't tell anyone")
-    assert p.score >= 0.9 and {"safe_account", "authority_threat", "urgency", "secrecy"} <= set(p.cues)
+    p = lexicon_score(
+        "The police will arrest you, move money to a safe account right now and don't tell anyone"
+    )
+    assert p.score >= 0.9 and {
+        "safe_account",
+        "authority_threat",
+        "urgency",
+        "secrecy",
+    } <= set(p.cues)
     assert lexicon_score("पुलिस ने कहा तुरंत पैसे भेजो").score >= 0.5
 
 
@@ -108,9 +127,15 @@ def test_challenge_digits_random_and_distinct():
 def test_evaluate_answer():
     assert evaluate_answer("7429", "seven four two nine", 1.0, False).passed
     assert not evaluate_answer("7429", "seven four two eight", 1.0, False).passed
-    assert not evaluate_answer("7429", "0 1 2 3 4 5 6 7 4 2 9 8 7", 1.0, False).passed  # digit spraying
-    assert not evaluate_answer("7429", "seven four two nine", -2.0, False).passed  # started before prompt ended
-    assert not evaluate_answer("7429", "seven four two nine", 1.0, True).passed  # expired
+    assert not evaluate_answer(
+        "7429", "0 1 2 3 4 5 6 7 4 2 9 8 7", 1.0, False
+    ).passed  # digit spraying
+    assert evaluate_answer(
+        "7429", "seven four two nine", -2.0, False
+    ).passed  # playback estimate is advisory
+    assert not evaluate_answer(
+        "7429", "seven four two nine", 1.0, True
+    ).passed  # expired
     slow = evaluate_answer("7429", "7429", 6.0, False)
     assert slow.passed and "slow" in slow.reasons[0]
 
@@ -127,29 +152,90 @@ def test_decide_matrix():
     s = get_settings()
     good = _state((0.9, 0.05), (0.92, 0.03))
     live_ok = LivenessOutcome(True, 1.0, 0.9, 0.05)
-    assert decide(0, good, enrolled=True, voice_locked=False, pressure=0).outcome == "allow"
-    assert decide(1, good, enrolled=True, voice_locked=False, pressure=0).outcome == "allow"
-    assert decide(2, good, enrolled=True, voice_locked=False, pressure=0).outcome == "challenge"
-    assert decide(2, good, enrolled=True, voice_locked=False, pressure=0, liveness=live_ok).outcome == "allow"
+    assert (
+        decide(0, good, enrolled=True, voice_locked=False, pressure=0).outcome
+        == "allow"
+    )
+    assert (
+        decide(1, good, enrolled=True, voice_locked=False, pressure=0).outcome
+        == "allow"
+    )
+    assert (
+        decide(2, good, enrolled=True, voice_locked=False, pressure=0).outcome
+        == "challenge"
+    )
+    assert (
+        decide(
+            2, good, enrolled=True, voice_locked=False, pressure=0, liveness=live_ok
+        ).outcome
+        == "allow"
+    )
     # pressure forces step-up even with good voice
-    assert decide(2, good, enrolled=True, voice_locked=False, pressure=0.8, liveness=live_ok).outcome == "stepup"
-    # slow answer -> step-up
-    assert decide(2, good, enrolled=True, voice_locked=False, pressure=0, liveness=LivenessOutcome(True, 6.0, 0.9, 0.05)).outcome == "stepup"
+    assert (
+        decide(
+            2, good, enrolled=True, voice_locked=False, pressure=0.8, liveness=live_ok
+        ).outcome
+        == "stepup"
+    )
+    # Timing alone cannot identify a clone or authorize/refuse a request.
+    assert (
+        decide(
+            2,
+            good,
+            enrolled=True,
+            voice_locked=False,
+            pressure=0,
+            liveness=LivenessOutcome(True, 6.0, 0.9, 0.05),
+        ).outcome
+        == "allow"
+    )
     # liveness audio by a different speaker -> refuse
-    assert decide(2, good, enrolled=True, voice_locked=False, pressure=0, liveness=LivenessOutcome(True, 1.0, 0.1, 0.05)).outcome == "refuse"
+    assert (
+        decide(
+            2,
+            good,
+            enrolled=True,
+            voice_locked=False,
+            pressure=0,
+            liveness=LivenessOutcome(True, 1.0, 0.1, 0.05),
+        ).outcome
+        == "refuse"
+    )
     # engines down on challenge audio -> fail closed to step-up (never allow)
-    assert decide(2, good, enrolled=True, voice_locked=False, pressure=0, liveness=LivenessOutcome(True, 1.0, None, None)).outcome == "stepup"
+    assert (
+        decide(
+            2,
+            good,
+            enrolled=True,
+            voice_locked=False,
+            pressure=0,
+            liveness=LivenessOutcome(True, 1.0, None, None),
+        ).outcome
+        == "stepup"
+    )
     # not enrolled -> step-up
-    assert decide(2, good, enrolled=False, voice_locked=False, pressure=0).outcome == "stepup"
+    assert (
+        decide(2, good, enrolled=False, voice_locked=False, pressure=0).outcome
+        == "stepup"
+    )
     # voice locked -> refuse
-    assert decide(1, good, enrolled=True, voice_locked=True, pressure=0).outcome == "refuse"
+    assert (
+        decide(1, good, enrolled=True, voice_locked=True, pressure=0).outcome
+        == "refuse"
+    )
     # synthetic anywhere -> refuse, even tier 1
     fake = _state((0.95, 0.05), (0.95, s.synthetic_hard + 0.05))
-    assert decide(1, fake, enrolled=True, voice_locked=False, pressure=0).outcome == "refuse"
+    assert (
+        decide(1, fake, enrolled=True, voice_locked=False, pressure=0).outcome
+        == "refuse"
+    )
     assert fake.locked_reason
     # mismatched voice tier 1 -> step-up, not data leak
     bad = _state((0.05, 0.02))
-    assert decide(1, bad, enrolled=True, voice_locked=False, pressure=0).outcome == "stepup"
+    assert (
+        decide(1, bad, enrolled=True, voice_locked=False, pressure=0).outcome
+        == "stepup"
+    )
 
 
 def test_swap_detection():
@@ -199,11 +285,18 @@ def test_json_path():
 
 @pytest.mark.asyncio
 async def test_detectifai_adapter_configurable(monkeypatch):
-    s = get_settings().model_copy(update={
-        "detectifai_base_url": "https://api.detectif.test", "detectifai_api_key": "k", "detectifai_auth_header": "x-api-key", "detectifai_auth_scheme": "",
-        "detectifai_verify_score_path": "result.similarity", "detectifai_verify_score_max": 100.0,
-        "detectifai_deepfake_score_path": "data.real_prob", "detectifai_deepfake_score_is_real": True,
-    })
+    s = get_settings().model_copy(
+        update={
+            "detectifai_base_url": "https://api.detectif.test",
+            "detectifai_api_key": "k",
+            "detectifai_auth_header": "x-api-key",
+            "detectifai_auth_scheme": "",
+            "detectifai_verify_score_path": "result.similarity",
+            "detectifai_verify_score_max": 100.0,
+            "detectifai_deepfake_score_path": "data.real_prob",
+            "detectifai_deepfake_score_is_real": True,
+        }
+    )
     seen = []
 
     def handler(req: httpx.Request):
@@ -216,7 +309,11 @@ async def test_detectifai_adapter_configurable(monkeypatch):
         return httpx.Response(200, json={"speaker_id": "spk_1"})
 
     cl = DetectifAIClient(s)
-    cl._client = httpx.AsyncClient(base_url=s.detectifai_base_url, headers={"x-api-key": "k"}, transport=httpx.MockTransport(handler))
+    cl._client = httpx.AsyncClient(
+        base_url=s.detectifai_base_url,
+        headers={"x-api-key": "k"},
+        transport=httpx.MockTransport(handler),
+    )
     x = audio("real_1089_3.wav")
     ref, _ = await cl.enroll("cus_1", x)
     assert ref == "spk_1"
@@ -229,34 +326,78 @@ async def test_detectifai_adapter_configurable(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_engine_falls_back_when_detectifai_down():
-    s = get_settings().model_copy(update={"voice_primary": "detectifai", "voice_fallback": "mock", "detectifai_base_url": "https://down.test", "breaker_fail_threshold": 2})
+    s = get_settings().model_copy(
+        update={
+            "voice_primary": "detectifai",
+            "voice_fallback": "mock",
+            "detectifai_base_url": "https://down.test",
+            "breaker_fail_threshold": 2,
+        }
+    )
     eng = VoiceEngine(s)
-    eng.detectifai._client = httpx.AsyncClient(base_url="https://down.test", transport=httpx.MockTransport(lambda r: httpx.Response(503, text="down")))
+    eng.detectifai._client = httpx.AsyncClient(
+        base_url="https://down.test",
+        transport=httpx.MockTransport(lambda r: httpx.Response(503, text="down")),
+    )
     x = audio("real_1089_3.wav")
     ref = EnrollmentRef("c", detectifai_ref="spk", mock_embedding=eng.mock.embed(x))
     r1 = await eng.check(ref, x)
     assert r1.speaker.source == "mock" and r1.spoof.source == "mock"
     assert any("detectifai" in e for e in r1.errors)
     await eng.check(ref, x)
-    assert eng.breakers["detectifai_speaker"].is_open  # third call skips the dead API entirely
+    assert eng.breakers[
+        "detectifai_speaker"
+    ].is_open  # third call skips the dead API entirely
     r3 = await eng.check(ref, x)
     assert any("circuit open" in e for e in r3.errors)
 
 
 @pytest.mark.asyncio
 async def test_engine_all_down_returns_none():
-    s = get_settings().model_copy(update={"voice_primary": "detectifai", "voice_fallback": "none", "detectifai_base_url": "https://down.test"})
+    s = get_settings().model_copy(
+        update={
+            "voice_primary": "detectifai",
+            "voice_fallback": "none",
+            "detectifai_base_url": "https://down.test",
+        }
+    )
     eng = VoiceEngine(s)
-    eng.detectifai._client = httpx.AsyncClient(base_url="https://down.test", transport=httpx.MockTransport(lambda r: httpx.Response(500)))
-    r = await eng.check(EnrollmentRef("c", detectifai_ref="x"), audio("real_1089_3.wav"))
+    eng.detectifai._client = httpx.AsyncClient(
+        base_url="https://down.test",
+        transport=httpx.MockTransport(lambda r: httpx.Response(500)),
+    )
+    r = await eng.check(
+        EnrollmentRef("c", detectifai_ref="x"), audio("real_1089_3.wav")
+    )
     assert r.speaker is None and r.spoof is None  # policy then fails closed
 
 
 def test_llm_output_validation():
     from app.core.nlu import _validate
 
-    r = _validate({"intent": "transfer_everything_now", "params": {"amount_rupees": "1e99", "new_mobile": "12345", "card_last4": "45210"}, "pressure": "high"}, "x")
+    r = _validate(
+        {
+            "intent": "transfer_everything_now",
+            "params": {
+                "amount_rupees": "1e99",
+                "new_mobile": "12345",
+                "card_last4": "45210",
+            },
+            "pressure": "high",
+        },
+        "x",
+    )
     assert r.intent == "unknown" and r.params == {} and r.pressure.score == 0
-    r = _validate({"intent": "card_limit_change", "params": {"new_limit_rupees": "75,000", "card_last4": "8890"}, "pressure": 0.2, "reply": "sure!"}, "x")
-    assert r.params == {"new_limit_rupees": 75000, "card_last4": "8890"} and r.reply == ""  # no free text for actions
+    r = _validate(
+        {
+            "intent": "card_limit_change",
+            "params": {"new_limit_rupees": "75,000", "card_last4": "8890"},
+            "pressure": 0.2,
+            "reply": "sure!",
+        },
+        "x",
+    )
+    assert (
+        r.params == {"new_limit_rupees": 75000, "card_last4": "8890"} and r.reply == ""
+    )  # no free text for actions
     assert json.dumps(r.params)

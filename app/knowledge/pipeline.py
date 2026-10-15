@@ -1,17 +1,17 @@
 """Autonomous Research & Scraping Pipeline (Planning -> Search -> Scraping -> Claim Extraction -> Indexing)."""
+
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import logging
-import re
 import time
 import uuid
 from collections import Counter
 from urllib.parse import urlparse
 
-from app.knowledge import extract as X, scraper, search, store
+from app.knowledge import extract as X
+from app.knowledge import scraper, search
 from app.knowledge.config import MAX_RESEARCH_SOURCES, RUNS_DIR
 from app.providers.llm import get_llm
 
@@ -19,9 +19,15 @@ log = logging.getLogger("unclone.knowledge.pipeline")
 
 FALLBACK_BANKING_TASKS = [
     ("regulations guidelines", "What official regulations or guidelines apply?"),
-    ("scams threat vectors", "What are the common scams, modus operandi, and fraud risks?"),
+    (
+        "scams threat vectors",
+        "What are the common scams, modus operandi, and fraud risks?",
+    ),
     ("bank policy rules", "What are the bank's rules, limits, and timelines?"),
-    ("prevention customer safety", "What steps should customers take to stay protected?"),
+    (
+        "prevention customer safety",
+        "What steps should customers take to stay protected?",
+    ),
 ]
 
 ACTIVE_RUNS: dict[str, ResearchRun] = {}
@@ -41,7 +47,14 @@ class ResearchRun:
         self.summary: str = ""
         ACTIVE_RUNS[self.id] = self
 
-    def emit(self, stage: str, title: str, status: str, summary: str = "", data: dict | None = None):
+    def emit(
+        self,
+        stage: str,
+        title: str,
+        status: str,
+        summary: str = "",
+        data: dict | None = None,
+    ):
         ev = {
             "i": len(self.events),
             "t": round(time.time() - self.created, 1),
@@ -69,12 +82,19 @@ class ResearchRun:
             await self._stage_index()
 
             self.status = "completed"
-            self.emit("complete", "Research & Scraping Complete", "done", f"Indexed {len(self.docs)} documents, {len(self.claims)} claims.")
+            self.emit(
+                "complete",
+                "Research & Scraping Complete",
+                "done",
+                f"Quarantined {len(self.docs)} documents for staff review.",
+            )
             self._save()
             return self.snapshot()
         except Exception as e:
             self.status = "failed"
-            self.emit("error", "Research Run Failed", "failed", f"{type(e).__name__}: {e}")
+            self.emit(
+                "error", "Research Run Failed", "failed", f"{type(e).__name__}: {e}"
+            )
             self._save()
             raise
 
@@ -86,23 +106,36 @@ class ResearchRun:
             system_prompt = (
                 "You are an expert research planner for banking security, financial fraud, and customer safety. "
                 "Break down the research query into 3-5 distinct, keyword-focused search queries. "
-                "Return JSON ONLY with format: {\"tasks\": [{\"q\": \"search query\", \"question\": \"sub-question\"}]}"
+                'Return JSON ONLY with format: {"tasks": [{"q": "search query", "question": "sub-question"}]}'
             )
             try:
                 resp = await llm.json_chat(system_prompt, f"Topic: {self.query}")
                 raw_tasks = resp.get("tasks", [])
                 for t in raw_tasks:
                     if t.get("q"):
-                        tasks.append({"q": str(t["q"]), "question": str(t.get("question", t["q"]))})
+                        tasks.append(
+                            {
+                                "q": str(t["q"]),
+                                "question": str(t.get("question", t["q"])),
+                            }
+                        )
             except Exception as e:
                 log.warning("LLM planning failed (%s), using fallback topics", e)
 
         if not tasks:
             for subtopic, q_text in FALLBACK_BANKING_TASKS:
-                tasks.append({"q": f"{self.query} {subtopic}".strip(), "question": q_text})
+                tasks.append(
+                    {"q": f"{self.query} {subtopic}".strip(), "question": q_text}
+                )
 
-        self.plan = [{"id": f"t{i+1}", **t} for i, t in enumerate(tasks)]
-        self.emit("plan", "Plan Created", "done", f"Generated {len(self.plan)} research queries", {"plan": self.plan})
+        self.plan = [{"id": f"t{i + 1}", **t} for i, t in enumerate(tasks)]
+        self.emit(
+            "plan",
+            "Plan Created",
+            "done",
+            f"Generated {len(self.plan)} research queries",
+            {"plan": self.plan},
+        )
 
     async def _stage_search(self):
         self.emit("search", "Searching Web & Open Sources", "running")
@@ -113,7 +146,13 @@ class ResearchRun:
             for r in res:
                 r["task_id"] = t["id"]
             search_results.extend(res)
-            self.emit("search", f"Searched: {q}", "progress", f"Found {len(res)} results", {"query": q, "count": len(res)})
+            self.emit(
+                "search",
+                f"Searched: {q}",
+                "progress",
+                f"Found {len(res)} results",
+                {"query": q, "count": len(res)},
+            )
 
         # De-duplicate
         seen_urls = set()
@@ -125,21 +164,29 @@ class ResearchRun:
             seen_urls.add(u)
             stype = X.classify_source(u)
             authority, label = X.SOURCE_TYPES.get(stype, (0.5, "Standard"))
-            candidates.append({
-                "url": u,
-                "title": r.get("title", ""),
-                "snippet": r.get("snippet", ""),
-                "type": stype,
-                "type_label": label,
-                "authority": authority,
-                "domain": urlparse(u).netloc.replace("www.", ""),
-                "task_id": r.get("task_id", ""),
-            })
+            candidates.append(
+                {
+                    "url": u,
+                    "title": r.get("title", ""),
+                    "snippet": r.get("snippet", ""),
+                    "type": stype,
+                    "type_label": label,
+                    "authority": authority,
+                    "domain": urlparse(u).netloc.replace("www.", ""),
+                    "task_id": r.get("task_id", ""),
+                }
+            )
 
         # Rank by authority
         candidates.sort(key=lambda c: -c["authority"])
         self.candidates = candidates
-        self.emit("search", "Search Completed", "done", f"Collected {len(candidates)} unique sources", {"count": len(candidates)})
+        self.emit(
+            "search",
+            "Search Completed",
+            "done",
+            f"Collected {len(candidates)} unique sources",
+            {"count": len(candidates)},
+        )
 
     async def _stage_scrape(self):
         self.emit("scrape", "Scraping Pages & Reading Full Content", "running")
@@ -159,12 +206,30 @@ class ResearchRun:
                 cand["via"] = page.get("via", "http")
                 self.sources[sid] = cand
                 self.docs[sid] = page["text"]
-                self.emit("scrape", f"Read {cand['domain']}", "progress", f"{len(page['text']):,} chars", {"source": sid, "url": u})
+                self.emit(
+                    "scrape",
+                    f"Read {cand['domain']}",
+                    "progress",
+                    f"{len(page['text']):,} chars",
+                    {"source": sid, "url": u},
+                )
             else:
-                self.emit("scrape", f"Failed {cand['domain']}", "progress", page.get("error", "fetch error"), {"url": u})
+                self.emit(
+                    "scrape",
+                    f"Failed {cand['domain']}",
+                    "progress",
+                    page.get("error", "fetch error"),
+                    {"url": u},
+                )
 
         await asyncio.gather(*(_fetch_one(c) for c in selected))
-        self.emit("scrape", "Scraping Finished", "done", f"Successfully scraped {len(self.docs)} full documents", {"sources_count": len(self.sources)})
+        self.emit(
+            "scrape",
+            "Scraping Finished",
+            "done",
+            f"Successfully scraped {len(self.docs)} full documents",
+            {"sources_count": len(self.sources)},
+        )
 
     async def _stage_extract(self):
         self.emit("extract", "Extracting Claims & Verbatim Evidence", "running")
@@ -194,34 +259,26 @@ class ResearchRun:
                 new_claims.append(c_item)
 
         kinds_summary = Counter(c["kind"] for c in self.claims.values())
-        summary_str = ", ".join(f"{v} {k}" for k, v in kinds_summary.items()) or "no claims"
-        self.emit("extract", "Claim Extraction Complete", "done", f"Extracted {len(self.claims)} structured claims ({summary_str})", {"claims_count": len(self.claims)})
+        summary_str = (
+            ", ".join(f"{v} {k}" for k, v in kinds_summary.items()) or "no claims"
+        )
+        self.emit(
+            "extract",
+            "Claim Extraction Complete",
+            "done",
+            f"Extracted {len(self.claims)} structured claims ({summary_str})",
+            {"claims_count": len(self.claims)},
+        )
 
     async def _stage_index(self):
-        self.emit("index", "Indexing into Knowledge Base & Vector Store", "running")
-        indexed_docs = 0
-        indexed_chunks = 0
+        from app.knowledge import quarantine
+
         for sid, text in self.docs.items():
             src = self.sources[sid]
-            h = hashlib.sha256(text.encode("utf-8")).hexdigest()
-            chunks = store.chunk_text(text)
-            doc_meta = {
-                "url": src["url"],
-                "domain": src["domain"],
-                "type": src["type"],
-                "title": src.get("title", ""),
-                "text": text,
-                "text_hash": h,
-                "via": src.get("via", "http"),
-            }
-            store.put_document(doc_meta, chunks)
-            indexed_docs += 1
-            indexed_chunks += len(chunks)
-
-        # Store claims
-        store.put_claims(list(self.claims.values()), run_id=self.id, query=self.query)
-        stats = store.get_stats()
-        self.emit("index", "Indexed Knowledge Base", "done", f"Added {indexed_docs} docs ({indexed_chunks} chunks); Store totals: {stats['documents']} docs, {stats['chunks']} chunks, {stats['claims']} claims", {"stats": stats})
+            result = quarantine.stage(
+                {"url": src["url"], "title": src.get("title", src["url"]), "text": text}
+            )
+            self.emit("review", "Source awaiting staff review", "pending", data=result)
 
     def snapshot(self) -> dict:
         return {
@@ -239,65 +296,18 @@ class ResearchRun:
     def _save(self):
         try:
             p = RUNS_DIR / f"{self.id}.json"
-            p.write_text(json.dumps(self.snapshot(), ensure_ascii=False, indent=2), encoding="utf-8")
+            p.write_text(
+                json.dumps(self.snapshot(), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
         except Exception as e:
             log.warning("Failed to save run snapshot: %s", e)
 
 
 async def scrape_single_url(url: str) -> dict:
-    """Scrapes a single URL and indexes it into the knowledge base directly."""
+    from app.knowledge import quarantine
+
     page = await scraper.fetch_page(url, force_refresh=True)
     if not page.get("ok"):
-        return {"ok": False, "error": page.get("error", "Scrape failed")}
-
-    text = page["text"]
-    title = page.get("title", url)
-    domain = urlparse(url).netloc.replace("www.", "")
-    stype = X.classify_source(url)
-    h = hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-    chunks = store.chunk_text(text)
-    doc_meta = {
-        "url": url,
-        "domain": domain,
-        "type": stype,
-        "title": title,
-        "text": text,
-        "text_hash": h,
-        "via": "direct_url",
-    }
-    store.put_document(doc_meta, chunks)
-
-    # Extract claims
-    sentences = X.split_sentences(text)
-    claims = []
-    for i, (_, sent) in enumerate(sentences):
-        attrs = X.analyse_claim(sent, stype)
-        if not attrs:
-            continue
-        claims.append({
-            "id": f"c_{h[:6]}_{i+1}",
-            "text": sent,
-            "url": url,
-            "domain": domain,
-            "kind": attrs["kind"],
-            "epistemic": attrs["epistemic"],
-            "authority": attrs["authority"],
-            "sentiment": attrs["sentiment"],
-            "prices": attrs["prices"],
-            "tasks": ["direct_scrape"],
-        })
-
-    if claims:
-        store.put_claims(claims, run_id=f"scrape_{h[:8]}", query=url)
-
-    return {
-        "ok": True,
-        "url": url,
-        "title": title,
-        "domain": domain,
-        "type": stype,
-        "chars": len(text),
-        "chunks": len(chunks),
-        "claims": len(claims),
-    }
+        return page
+    return quarantine.stage(page)

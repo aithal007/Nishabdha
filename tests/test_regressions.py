@@ -1,4 +1,5 @@
 """Regression tests for issues found in the adversarial review."""
+
 from __future__ import annotations
 
 import pytest
@@ -7,7 +8,7 @@ from app.core import session as session_mod
 from app.providers.voice_engine import get_voice_engine
 
 from .conftest import STAFF
-from .helpers import challenge_words, enroll, first, names, start_call, text, turn
+from .helpers import enroll, first, names, start_call, text, turn
 
 pytestmark = pytest.mark.asyncio
 
@@ -22,8 +23,6 @@ async def test_typed_tier1_does_not_loop(client, stt):
     genuine()
     cid, h = await start_call(client, "cus_ananya")
     ev = await text(client, cid, h, "what is my balance")
-    assert first(ev, "challenge_issued")
-    ev = await text(client, cid, h, challenge_words(cid))
     assert first(ev, "decision")["outcome"] == "stepup"
     assert "challenge_issued" not in names(ev)
 
@@ -37,7 +36,11 @@ async def test_fraud_desk_lock_applies_to_live_call(client, stt):
     sess = session_mod.SESSIONS[cid]
     await sess.create_ticket("high", ["manual"], None, [])
     t = (await client.get("/api/tickets", headers=STAFF)).json()["tickets"][0]
-    await client.patch(f"/api/tickets/{t['id']}", headers=STAFF, json={"status": "confirmed_fraud", "lock_customer_voice": True})
+    await client.patch(
+        f"/api/tickets/{t['id']}",
+        headers=STAFF,
+        json={"status": "confirmed_fraud", "lock_customer_voice": True},
+    )
     stt.say("freeze my debit card")
     ev = await turn(client, cid, h, "real_1089_4.wav")
     assert "action_executed" not in names(ev)
@@ -60,21 +63,56 @@ async def test_stepup_expired_after_refusal(client, stt):
 
     async with sess._turn_lock:
         await sess._refuse(Decision("refuse", 0.0, ["test"]))
-    r = await client.post(f"/api/app/stepups/{st['stepup_id']}/approve", headers={"X-App-Token": "app-rahul-demo"})
+    r = await client.post(
+        f"/api/app/stepups/{st['stepup_id']}/approve",
+        headers={"X-App-Token": "app-rahul-demo"},
+    )
     assert r.status_code == 409
-    pend = (await client.get("/api/app/pending", headers={"X-App-Token": "app-rahul-demo"})).json()
+    pend = (
+        await client.get("/api/app/pending", headers={"X-App-Token": "app-rahul-demo"})
+    ).json()
     assert pend["stepups"] == []
 
 
 async def test_per_call_transfer_cap(client, stt):
-    cid, h = await start_call(client, "cus_ananya")  # not enrolled -> app approvals
+    from .passkey_device import provision
+
+    device = await provision(client)
+    await enroll(client, "cus_ananya")
+    genuine()
+    cid, h = await start_call(client, "cus_ananya")
+    app_h = {"X-App-Token": "app-ananya-demo"}
     for i, amt in enumerate((40000, 20000)):
         stt.say(f"send {amt} rupees to Amma")
         ev = await turn(client, cid, h, f"real_1089_{i + 3}.wav")
         st = first(ev, "stepup_sent")
-        await client.post(f"/api/app/stepups/{st['stepup_id']}/approve", headers={"X-App-Token": "app-ananya-demo"})
-    me = (await client.get("/api/app/me", headers={"X-App-Token": "app-ananya-demo"})).json()
-    assert me["accounts"][0]["balance_paise"] == 1_24_500_00 - 40000_00  # second transfer blocked by the cap
+        assert st, names(ev)
+        rejected = await client.post(
+            f"/api/app/stepups/{st['stepup_id']}/approve", headers=app_h
+        )
+        assert rejected.status_code == 403
+        options = (
+            await client.post(
+                "/api/app/passkeys/options",
+                headers=app_h,
+                json={"purpose": "transfer", "stepup_id": st["stepup_id"]},
+            )
+        ).json()
+        response = await client.post(
+            "/api/app/passkeys/verify",
+            headers=app_h,
+            json={
+                "approval_id": options["approval_id"],
+                "credential": device.authenticate(options["options"]),
+            },
+        )
+        assert response.status_code == (200 if i == 0 else 409), response.text
+    me = (
+        await client.get("/api/app/me", headers={"X-App-Token": "app-ananya-demo"})
+    ).json()
+    assert (
+        me["accounts"][0]["balance_paise"] == 1_24_500_00 - 40000_00
+    )  # second transfer blocked by the cap
 
 
 async def test_end_during_pending_is_clean(client, stt):

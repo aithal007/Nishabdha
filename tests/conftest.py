@@ -39,7 +39,7 @@ from httpx import ASGITransport, AsyncClient  # noqa: E402
 
 from app.audio import decode_any  # noqa: E402
 from app.core import session as session_mod  # noqa: E402
-from app.db import init_db  # noqa: E402
+from app.db import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.providers.stt import Transcript  # noqa: E402
 from app.providers.voice_engine import get_voice_engine  # noqa: E402
@@ -90,6 +90,7 @@ async def client():
         yield c
     for s in list(session_mod.SESSIONS.values()):
         await s.end("test_teardown")
+    await engine.dispose()  # close aiosqlite threads before pytest closes this event loop
 
 
 def wav(name: str) -> bytes:

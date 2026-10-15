@@ -3,10 +3,12 @@
 Every check returns which engine answered so the evidence report can show it.
 If *no* engine can answer, the result carries `None` and the policy layer fails closed (step-up/refuse).
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -14,7 +16,14 @@ import numpy as np
 
 from app.audio import decode_any
 from app.config import Settings, get_settings
-from app.providers.base import CircuitBreaker, EnrollResult, ProviderError, SpeakerResult, SpoofResult, run_sync
+from app.providers.base import (
+    CircuitBreaker,
+    EnrollResult,
+    ProviderError,
+    SpeakerResult,
+    SpoofResult,
+    run_sync,
+)
 from app.providers.detectifai import DetectifAIClient
 from app.providers.local_models import LocalSpeaker, LocalSpoof, MockEngine
 
@@ -39,12 +48,52 @@ class VoiceCheckResult:
     errors: list[str] = field(default_factory=list)
 
     @property
+    def status(self) -> str:
+        if self.speaker_prob is None or self.synthetic_prob is None:
+            return "missing"
+        s = get_settings()
+        if (
+            self.synthetic_prob >= s.synthetic_hard
+            or self.speaker_prob < s.speaker_reject
+        ):
+            return "flagged"
+        if self.provenance == "degraded":
+            return "degraded"
+        if self.provenance == "unknown":
+            return "unknown"
+        return "success"
+
+    @property
+    def provenance(self) -> str:
+        if self.speaker is None or self.spoof is None:
+            return "unknown"
+        scores = (self.speaker.prob, self.spoof.synthetic_prob)
+        if any(not math.isfinite(v) or not 0 <= v <= 1 for v in scores):
+            return "unknown"
+        sources = {self.speaker.source, self.spoof.source}
+        if sources == {"detectifai"}:
+            return "detectifai"
+        if "mock" in sources:
+            return "mock"
+        return "degraded"
+
+    @property
     def speaker_prob(self) -> float | None:
-        return None if self.speaker is None else self.speaker.prob
+        score = None if self.speaker is None else self.speaker.prob
+        return (
+            score
+            if score is not None and math.isfinite(score) and 0 <= score <= 1
+            else None
+        )
 
     @property
     def synthetic_prob(self) -> float | None:
-        return None if self.spoof is None else self.spoof.synthetic_prob
+        score = None if self.spoof is None else self.spoof.synthetic_prob
+        return (
+            score
+            if score is not None and math.isfinite(score) and 0 <= score <= 1
+            else None
+        )
 
 
 class VoiceEngine:
@@ -55,8 +104,15 @@ class VoiceEngine:
         self.local_spoof = LocalSpoof(self.s)
         self.mock = MockEngine()
         self.breakers = {
-            n: CircuitBreaker(n, self.s.breaker_fail_threshold, self.s.breaker_cooldown_s)
-            for n in ("detectifai_speaker", "detectifai_spoof", "local_speaker", "local_spoof")
+            n: CircuitBreaker(
+                n, self.s.breaker_fail_threshold, self.s.breaker_cooldown_s
+            )
+            for n in (
+                "detectifai_speaker",
+                "detectifai_spoof",
+                "local_speaker",
+                "local_spoof",
+            )
         }
         self._ref_cache: dict[str, np.ndarray] = {}
 
@@ -67,8 +123,10 @@ class VoiceEngine:
             if e != "none" and e not in out:
                 if e == "detectifai" and not self.detectifai.configured:
                     continue
+                if e == "mock" and self.s.app_env not in ("test", "demo"):
+                    continue
                 out.append(e)
-        return out or ["mock"]
+        return out
 
     # ------------------------------------------------------------ enrollment
     async def enroll(self, customer_id: str, clips: list[np.ndarray]) -> EnrollResult:
@@ -78,9 +136,14 @@ class VoiceEngine:
         for eng in self.chain:
             try:
                 if eng == "detectifai":
-                    ref, raw = await asyncio.wait_for(self.detectifai.enroll(customer_id, joined), self.s.voice_timeout_s * 2)
+                    ref, raw = await asyncio.wait_for(
+                        self.detectifai.enroll(customer_id, joined),
+                        self.s.voice_timeout_s * 2,
+                    )
                     res.detectifai_ref = ref
-                    res.detail["detectifai"] = raw if isinstance(raw, dict) else {"raw": str(raw)[:300]}
+                    res.detail["detectifai"] = (
+                        raw if isinstance(raw, dict) else {"raw": str(raw)[:300]}
+                    )
                 elif eng == "local":
                     c = await run_sync(self.local_speaker.centroid, clips)
                     res.local_embedding = c.tobytes()
@@ -91,7 +154,9 @@ class VoiceEngine:
                 errors.append(f"{eng}: {type(e).__name__}: {e}"[:300])
                 log.warning("enroll via %s failed: %s", eng, e)
         if not sources:
-            raise ProviderError("no voice engine could enroll this voice: " + "; ".join(errors))
+            raise ProviderError(
+                "no voice engine could enroll this voice: " + "; ".join(errors)
+            )
         res.source = "+".join(sources)
         res.detail["errors"] = errors
         return res
@@ -115,7 +180,9 @@ class VoiceEngine:
     def forget(self, customer_id: str) -> None:
         self._ref_cache.pop(customer_id, None)
 
-    async def _speaker(self, ref: EnrollmentRef, audio: np.ndarray, errors: list[str]) -> SpeakerResult | None:
+    async def _speaker(
+        self, ref: EnrollmentRef, audio: np.ndarray, errors: list[str]
+    ) -> SpeakerResult | None:
         for eng in self.chain:
             br = self.breakers.get(f"{eng}_speaker")
             if br and br.is_open:
@@ -124,15 +191,26 @@ class VoiceEngine:
             try:
                 if eng == "detectifai":
                     if self.s.detectifai_verify_mode == "pair":
-                        r = await asyncio.wait_for(self.detectifai.verify(None, audio, await run_sync(self._reference_audio, ref)), self.s.voice_timeout_s)
+                        r = await asyncio.wait_for(
+                            self.detectifai.verify(
+                                None, audio, await run_sync(self._reference_audio, ref)
+                            ),
+                            self.s.voice_timeout_s,
+                        )
                     else:
                         if not ref.detectifai_ref:
                             raise ProviderError("customer not enrolled with DetectifAI")
-                        r = await asyncio.wait_for(self.detectifai.verify(ref.detectifai_ref, audio), self.s.voice_timeout_s)
+                        r = await asyncio.wait_for(
+                            self.detectifai.verify(ref.detectifai_ref, audio),
+                            self.s.voice_timeout_s,
+                        )
                 elif eng == "local":
                     if ref.local_embedding is None:
                         raise ProviderError("customer has no local voiceprint")
-                    r = await asyncio.wait_for(run_sync(self.local_speaker.verify, ref.local_embedding, audio), self.s.voice_timeout_s * 2)
+                    r = await asyncio.wait_for(
+                        run_sync(self.local_speaker.verify, ref.local_embedding, audio),
+                        self.s.voice_timeout_s * 2,
+                    )
                 else:
                     if ref.mock_embedding is None:
                         raise ProviderError("customer has no mock voiceprint")
@@ -142,7 +220,14 @@ class VoiceEngine:
                 return r
             except Exception as e:
                 # "not enrolled with this engine" is a data issue, not an outage - don't trip the breaker
-                if br and not (isinstance(e, ProviderError) and ("enrolled" in str(e) or "voiceprint" in str(e) or "too short" in str(e))):
+                if br and not (
+                    isinstance(e, ProviderError)
+                    and (
+                        "enrolled" in str(e)
+                        or "voiceprint" in str(e)
+                        or "too short" in str(e)
+                    )
+                ):
                     br.fail(e)
                 errors.append(f"{eng}_speaker: {type(e).__name__}: {e}"[:300])
         return None
@@ -155,9 +240,14 @@ class VoiceEngine:
                 continue
             try:
                 if eng == "detectifai":
-                    r = await asyncio.wait_for(self.detectifai.deepfake(audio), self.s.voice_timeout_s)
+                    r = await asyncio.wait_for(
+                        self.detectifai.deepfake(audio), self.s.voice_timeout_s
+                    )
                 elif eng == "local":
-                    r = await asyncio.wait_for(run_sync(self.local_spoof.detect, audio), self.s.voice_timeout_s * 2)
+                    r = await asyncio.wait_for(
+                        run_sync(self.local_spoof.detect, audio),
+                        self.s.voice_timeout_s * 2,
+                    )
                 else:
                     r = self.mock.detect(audio)
                 if br:
@@ -169,7 +259,9 @@ class VoiceEngine:
                 errors.append(f"{eng}_spoof: {type(e).__name__}: {e}"[:300])
         return None
 
-    async def check(self, ref: EnrollmentRef | None, audio: np.ndarray) -> VoiceCheckResult:
+    async def check(
+        self, ref: EnrollmentRef | None, audio: np.ndarray
+    ) -> VoiceCheckResult:
         """Speaker verification + deepfake detection in parallel."""
         errors: list[str] = []
         spoof_task = asyncio.create_task(self._spoof(audio, errors))
@@ -181,8 +273,13 @@ class VoiceEngine:
         """Load local models at startup so the first call isn't slow."""
         out = {}
         if "local" in self.chain:
-            silence = (np.random.default_rng(0).standard_normal(16000 * 2) * 0.01).astype(np.float32)
-            for name, fn in (("local_speaker", self.local_speaker.embed), ("local_spoof", self.local_spoof.raw_scores)):
+            silence = (
+                np.random.default_rng(0).standard_normal(16000 * 2) * 0.01
+            ).astype(np.float32)
+            for name, fn in (
+                ("local_speaker", self.local_speaker.embed),
+                ("local_spoof", self.local_spoof.raw_scores),
+            ):
                 try:
                     await run_sync(fn, silence)
                     out[name] = "ready"
@@ -193,9 +290,15 @@ class VoiceEngine:
     def status(self) -> dict:
         return {
             "chain": self.chain,
+            "mode": "unavailable"
+            if not self.chain
+            else ("mock" if "mock" in self.chain else "real"),
             "detectifai_configured": self.detectifai.configured,
             "breakers": [b.status() for b in self.breakers.values()],
-            "local_load_errors": {"speaker": self.local_speaker.load_error, "spoof": self.local_spoof.load_errors},
+            "local_load_errors": {
+                "speaker": self.local_speaker.load_error,
+                "spoof": self.local_spoof.load_errors,
+            },
         }
 
     async def close(self) -> None:

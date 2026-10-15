@@ -1,4 +1,5 @@
 """Structured Knowledge Store (SQLite FTS5 + Claim Ledger + Vector Cosine)."""
+
 from __future__ import annotations
 
 import array
@@ -8,7 +9,6 @@ import math
 import sqlite3
 import threading
 import time
-from pathlib import Path
 
 from app.knowledge.config import DB_PATH, DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 from app.knowledge.embedder import get_embedding, get_embeddings_batch
@@ -78,7 +78,9 @@ def con() -> sqlite3.Connection:
     return _con
 
 
-def chunk_text(text: str, size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> list[str]:
+def chunk_text(
+    text: str, size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP
+) -> list[str]:
     """Chunks text preserving paragraphs when possible."""
     paragraphs = [p.strip() for p in (text or "").split("\n") if p.strip()]
     if not paragraphs:
@@ -90,7 +92,7 @@ def chunk_text(text: str, size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT
             chunks.append(current.strip())
             # overlap handling
             words = current.split()
-            overlap_words = words[-max(1, overlap // 6):] if len(words) > 10 else []
+            overlap_words = words[-max(1, overlap // 6) :] if len(words) > 10 else []
             current = " ".join(overlap_words) + (" " if overlap_words else "") + p
         else:
             current = (current + "\n" + p).strip() if current else p
@@ -101,7 +103,11 @@ def chunk_text(text: str, size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT
 
 def needs_index(url: str, text_hash: str) -> bool:
     with _lock:
-        r = con().execute("SELECT text_hash FROM documents WHERE url=?", (url,)).fetchone()
+        r = (
+            con()
+            .execute("SELECT text_hash FROM documents WHERE url=?", (url,))
+            .fetchone()
+        )
         return not r or r[0] != text_hash
 
 
@@ -112,7 +118,7 @@ def put_document(doc: dict, chunks: list[str], embs: list[list[float]] | None = 
 
     with _lock, con() as c:
         c.execute(
-            """INSERT OR REPLACE INTO documents 
+            """INSERT OR REPLACE INTO documents
                (url, domain, type, title, text, text_hash, via, indexed_at)
                VALUES (:url, :domain, :type, :title, :text, :text_hash, :via, :indexed_at)""",
             {
@@ -127,19 +133,28 @@ def put_document(doc: dict, chunks: list[str], embs: list[list[float]] | None = 
             },
         )
         # Delete old chunks & FTS5
-        old_ids = c.execute("SELECT id, text FROM chunks WHERE doc_url=?", (doc["url"],)).fetchall()
+        old_ids = c.execute(
+            "SELECT id, text FROM chunks WHERE doc_url=?", (doc["url"],)
+        ).fetchall()
         for row in old_ids:
-            c.execute("INSERT INTO chunks_fts(chunks_fts, rowid, text) VALUES('delete', ?, ?)", (row["id"], row["text"]))
+            c.execute(
+                "INSERT INTO chunks_fts(chunks_fts, rowid, text) VALUES('delete', ?, ?)",
+                (row["id"], row["text"]),
+            )
         c.execute("DELETE FROM chunks WHERE doc_url=?", (doc["url"],))
 
         # Insert new chunks with vector embeddings
         for i, chunk in enumerate(chunks):
-            emb_blob = array.array("f", embs[i]).tobytes() if embs and i < len(embs) else None
+            emb_blob = (
+                array.array("f", embs[i]).tobytes() if embs and i < len(embs) else None
+            )
             rid = c.execute(
                 "INSERT INTO chunks (doc_url, i, text, emb) VALUES (?, ?, ?, ?)",
                 (doc["url"], i, chunk, emb_blob),
             ).lastrowid
-            c.execute("INSERT INTO chunks_fts (rowid, text) VALUES (?, ?)", (rid, chunk))
+            c.execute(
+                "INSERT INTO chunks_fts (rowid, text) VALUES (?, ?)", (rid, chunk)
+            )
 
 
 def put_claims(claims: list[dict], run_id: str = "seed", query: str = ""):
@@ -147,25 +162,27 @@ def put_claims(claims: list[dict], run_id: str = "seed", query: str = ""):
     with _lock, con() as c:
         rows = []
         for i, cl in enumerate(claims):
-            cid = cl.get("id") or f"c{i+1}"
+            cid = cl.get("id") or f"c{i + 1}"
             prices_str = json.dumps(cl.get("prices", []))
             tasks_str = json.dumps(cl.get("tasks", []))
-            rows.append((
-                cid,
-                run_id,
-                cl.get("url", ""),
-                cl.get("text", ""),
-                cl.get("kind", "fact"),
-                cl.get("epistemic", "reported"),
-                float(cl.get("authority", 0.5)),
-                int(cl.get("sentiment", 0)),
-                prices_str,
-                tasks_str,
-                query,
-                time.time(),
-            ))
+            rows.append(
+                (
+                    cid,
+                    run_id,
+                    cl.get("url", ""),
+                    cl.get("text", ""),
+                    cl.get("kind", "fact"),
+                    cl.get("epistemic", "reported"),
+                    float(cl.get("authority", 0.5)),
+                    int(cl.get("sentiment", 0)),
+                    prices_str,
+                    tasks_str,
+                    query,
+                    time.time(),
+                )
+            )
         c.executemany(
-            """INSERT OR REPLACE INTO claims 
+            """INSERT OR REPLACE INTO claims
                (id, run, url, text, kind, epistemic, authority, sentiment, prices, tasks, query, created)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             rows,
@@ -182,8 +199,8 @@ def search_chunks(q: str, k: int = 8, qvec: list[float] | None = None) -> list[d
     qn = math.sqrt(sum(x * x for x in qvec)) or 1.0
     scored = []
     rows = c.execute(
-        """SELECT c.id, c.doc_url, c.text, c.emb, d.title, d.domain, d.type 
-           FROM chunks c JOIN documents d ON d.url = c.doc_url 
+        """SELECT c.id, c.doc_url, c.text, c.emb, d.title, d.domain, d.type
+           FROM chunks c JOIN documents d ON d.url = c.doc_url AND d.via IN ('curated_demo_policy', 'reviewed_external')
            WHERE c.emb IS NOT NULL"""
     ).fetchall()
     for r in rows:
@@ -210,15 +227,16 @@ def search_chunks(q: str, k: int = 8, qvec: list[float] | None = None) -> list[d
             for score, r in scored[:k]
         ]
 
-
     # FTS5 search
-    clean_words = [w for w in q.replace('"', " ").replace("'", " ").split() if len(w) > 2]
+    clean_words = [
+        w for w in q.replace('"', " ").replace("'", " ").split() if len(w) > 2
+    ]
     terms = " OR ".join(f'"{w}"' for w in clean_words)
     if not terms:
         # Fallback to recent chunks
         rows = c.execute(
-            """SELECT c.id, c.doc_url, c.text, d.title, d.domain, d.type 
-               FROM chunks c JOIN documents d ON d.url = c.doc_url 
+            """SELECT c.id, c.doc_url, c.text, d.title, d.domain, d.type
+               FROM chunks c JOIN documents d ON d.url = c.doc_url AND d.via IN ('curated_demo_policy', 'reviewed_external')
                LIMIT ?""",
             (k,),
         ).fetchall()
@@ -239,10 +257,10 @@ def search_chunks(q: str, k: int = 8, qvec: list[float] | None = None) -> list[d
     try:
         rows = c.execute(
             """SELECT c.id, c.doc_url, c.text, d.title, d.domain, d.type, bm25(chunks_fts) as score
-               FROM chunks_fts 
-               JOIN chunks c ON c.id = chunks_fts.rowid 
-               JOIN documents d ON d.url = c.doc_url 
-               WHERE chunks_fts MATCH ? 
+               FROM chunks_fts
+               JOIN chunks c ON c.id = chunks_fts.rowid
+               JOIN documents d ON d.url = c.doc_url AND d.via IN ('curated_demo_policy', 'reviewed_external')
+               WHERE chunks_fts MATCH ?
                ORDER BY score ASC LIMIT ?""",
             (terms, k),
         ).fetchall()
@@ -264,8 +282,8 @@ def search_chunks(q: str, k: int = 8, qvec: list[float] | None = None) -> list[d
         # LIKE fallback
         pat = f"%{clean_words[0]}%" if clean_words else "%"
         rows = c.execute(
-            """SELECT c.id, c.doc_url, c.text, d.title, d.domain, d.type 
-               FROM chunks c JOIN documents d ON d.url = c.doc_url 
+            """SELECT c.id, c.doc_url, c.text, d.title, d.domain, d.type
+               FROM chunks c JOIN documents d ON d.url = c.doc_url AND d.via IN ('curated_demo_policy', 'reviewed_external')
                WHERE c.text LIKE ? LIMIT ?""",
             (pat, k),
         ).fetchall()
@@ -287,7 +305,9 @@ def search_chunks(q: str, k: int = 8, qvec: list[float] | None = None) -> list[d
 def search_claims(q: str = "", kind: str = "", limit: int = 50) -> list[dict]:
     """Retrieves claims filtered by text keywords and/or kind."""
     c = con()
-    query_parts = ["1=1"]
+    query_parts = [
+        "url IN (SELECT url FROM documents WHERE via IN ('curated_demo_policy', 'reviewed_external'))"
+    ]
     params = []
     if kind:
         query_parts.append("kind = ?")
@@ -327,7 +347,12 @@ def get_stats() -> dict:
     n_docs = c.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
     n_chunks = c.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
     n_claims = c.execute("SELECT COUNT(*) FROM claims").fetchone()[0]
-    domains = [r[0] for r in c.execute("SELECT DISTINCT domain FROM documents WHERE domain != ''").fetchall()]
+    domains = [
+        r[0]
+        for r in c.execute(
+            "SELECT DISTINCT domain FROM documents WHERE domain != ''"
+        ).fetchall()
+    ]
     return {
         "documents": n_docs,
         "chunks": n_chunks,
@@ -340,7 +365,7 @@ def get_stats() -> dict:
 def get_recent_documents(limit: int = 20) -> list[dict]:
     c = con()
     rows = c.execute(
-        """SELECT url, domain, type, title, text_hash, via, indexed_at 
+        """SELECT url, domain, type, title, text_hash, via, indexed_at
            FROM documents ORDER BY indexed_at DESC LIMIT ?""",
         (limit,),
     ).fetchall()

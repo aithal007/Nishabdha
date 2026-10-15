@@ -17,7 +17,7 @@ class ProviderError(RuntimeError):
 
 @dataclass
 class SpeakerResult:
-    prob: float  # calibrated P(same speaker) in [0,1]
+    prob: float  # normalized match score in [0,1]; legacy name, not a calibrated probability
     raw: float  # provider's raw score (cosine / API score)
     source: str
     latency_ms: int = 0
@@ -26,7 +26,7 @@ class SpeakerResult:
 
 @dataclass
 class SpoofResult:
-    synthetic_prob: float  # P(synthetic / deepfake) in [0,1]
+    synthetic_prob: float  # normalized synthetic score; calibration depends on the provider
     source: str
     latency_ms: int = 0
     detail: dict = field(default_factory=dict)
