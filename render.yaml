@@ -19,6 +19,8 @@ services:
         value: none
       - key: LLM_PROVIDER
         value: none
+      - key: NISHABHA_ALLOW_LOCAL_MODELS
+        value: "false"
       - key: STAFF_API_KEY
         generateValue: true
       - key: AUDIT_HMAC_SECRET

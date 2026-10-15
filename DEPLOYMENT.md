@@ -6,6 +6,8 @@ Nishabdha is a hackathon prototype with simulated banking only. It has no real p
 
 The repository includes `render.yaml` for a one-process Docker web service. It is configured as a UI/demo preview: speech recognition and the LLM are disabled, and the UI uses the explicitly disclosed demo voice mock when DetectifAI is not configured. Mock evidence cannot authorize a transfer. The free Render plan is suitable only for a temporary, non-production preview:
 
+The Render launcher also disables local PyTorch, SpeechBrain, and Whisper fallbacks by default because the free instance has only 512 MB of RAM. Groq can still be used when its key is configured. Set `NISHABHA_ALLOW_LOCAL_MODELS=true` only on a larger instance where local model memory has been measured.
+
 - It sleeps after inactivity and can take about a minute to wake.
 - Its filesystem is ephemeral. Demo accounts, passkey registrations, approvals, receipts, uploaded audio, and the bank signing key can be reset when the service sleeps, restarts, or redeploys.
 - Free services cannot attach persistent disks. A paid service with a persistent disk is needed to preserve the app's SQLite state and signing key across restarts. The SQLite app should remain a single process.

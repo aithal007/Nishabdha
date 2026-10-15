@@ -27,12 +27,11 @@ test("navigation, customer data and live typed call retain their contracts", asy
   await page
     .getByRole("button", { name: "Voice workspace", exact: true })
     .click();
-  await page.locator("#startBtn").click();
+  await page.locator("#typeText").fill("What's my balance?");
+  await page.locator("#typeBtn").click();
   await expect(page.locator("#callState")).toContainText("Connected", {
     timeout: 15000,
   });
-  await page.locator("#typeText").fill("What's my balance?");
-  await page.locator("#typeBtn").click();
   await expect(page.locator("#chat")).toContainText("What's my balance?");
   await page.locator("#endBtn").click();
   await expect(page.locator("#callState")).toHaveText("Not connected");

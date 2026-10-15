@@ -399,7 +399,7 @@ const Call = {
         d.enrolled ? "" : "warn",
       );
   },
-  async start(outbound = false) {
+  async start(outbound = false, { mic = true } = {}) {
     if (this.id) {
       toast("End the current call before opening another session.");
       return;
@@ -446,16 +446,20 @@ const Call = {
       ["endBtn", "micBtn", "doneBtn", "typeText", "typeBtn", "clipBtn"].forEach(
         (k) => ($(k).disabled = false),
       );
-      try {
-        await Mic.start();
-        Mic.on = true;
-      } catch (e) {
-        toast("Microphone blocked: " + e.message + ". You can still type.");
+      if (mic) {
+        try {
+          await Mic.start();
+          Mic.on = true;
+        } catch (e) {
+          toast("Microphone blocked: " + e.message + ". You can still type.");
+        }
       }
       Mic.refresh();
+      return true;
     } catch (e) {
       toast(e.message);
       this.cleanup();
+      return false;
     }
   },
   end() {
@@ -467,7 +471,7 @@ const Call = {
     Speaker.stop();
     this.id = null;
     this.ws = null;
-    ["endBtn", "micBtn", "doneBtn", "typeText", "typeBtn", "clipBtn"].forEach(
+    ["endBtn", "micBtn", "doneBtn", "clipBtn"].forEach(
       (k) => ($(k).disabled = true),
     );
     $("startBtn").disabled = false;
@@ -497,12 +501,18 @@ $("doneBtn").onclick = () => {
   Mic.flush();
   Call.send({ type: "end_utterance" });
 };
-$("typeForm").onsubmit = (e) => {
+$("typeForm").onsubmit = async (e) => {
   e.preventDefault();
   const t = $("typeText").value.trim();
   if (!t) return;
+  $("typeBtn").disabled = true;
+  if (!Call.id && !(await Call.start(false, { mic: false }))) {
+    $("typeBtn").disabled = false;
+    return;
+  }
   Call.send({ type: "text", text: t });
   $("typeText").value = "";
+  $("typeBtn").disabled = false;
 };
 $("clipBtn").onclick = async () => {
   const f = $("clipFile").files[0];
