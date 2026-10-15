@@ -1,0 +1,5 @@
+# Review editable source; compiled strings and vendored font assets are generated.
+app/static/ui/** linguist-generated=true
+app/static/ui/assets/*.js -whitespace
+app/static/ui/assets/*.css -whitespace
+*.woff2 binary
