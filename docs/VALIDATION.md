@@ -43,3 +43,10 @@ Virtual authenticators generate real signatures validated by the WebAuthn librar
 Actual DetectifAI request/response contract, enrollment behavior, score semantics/thresholds, quotas, real-audio accuracy and network latency require supplied credentials and API documentation. Hosted origin/RP settings and a physical browser authenticator require a deployment-specific smoke test. The Chromium tests use an explicit demo mock provider, a virtual authenticator, and disabled STT/TTS providers. They do not establish live microphone/speech-provider performance. Desktop and mobile screenshots were inspected; the remaining live microphone/STT/TTS rehearsal requires configured providers and consented recordings.
 
 Use `docs/SECURITY.md` for the consented held-out evaluation protocol and limitations. No detection benchmark, financial assurance certification, real payment execution or hackathon outcome is asserted.
+
+
+## Track 3 presentation update (16 October 2026)
+
+Reframed the opening experience around agent trust, renamed Approval center and Trust desk, prioritized signed agent identity and the support delegate, and placed account data/cards in optional simulated banking examples. Updated English call introductions, the independent verifier copy, README, architecture, and presentation guide. Underlying permissions, claims, routes, and authorization checks remain compatible.
+
+Validation: production TypeScript/Vite build passed; all seven Chromium scenarios passed, including virtual passkey enrollment, bounded delegate actions, session proof verification, receipt verification/tamper rejection, mobile navigation, and accessibility checks. Thirteen targeted Python WebSocket/decision regressions and eight real-signature verifier checks passed. Desktop screenshot inspected. These checks do not establish live DetectifAI performance.

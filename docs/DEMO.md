@@ -1,19 +1,18 @@
-# Nishabdha: proof before action
+# Nishabdha: Unclone Agents
 
-Pitch: **A copied voice cannot copy your permissions.** Verify caller evidence, prove the bank agent's application identity, and execute only the authorized action.
+Pitch: **AI voice agents that verify you, prove themselves, and act only within your permission.** A copied voice cannot copy your permissions. Banking is an optional sensitive-action example, not the product category.
 
 ## Four-minute presentation
 
-1. **Prove the bank (30s).** Enter the staff key, start an authorized outbound session in Fraud desk, then independently open Customer app and Verify bank session. The signature proves the configured app session, not arbitrary telephone audio. Four separate states show caller evidence, bank identity, permission and outcome.
-2. **Attempt impersonation (40s).** Send a consented cloned clip as a new utterance. Inspect actual DetectifAI outputs in Fraud desk. Missing/flagged evidence holds/refuses the action; do not promise a particular detector score.
-3. **Authorize a transfer (60s).** With sponsor APIs and an enrolled genuine customer, request a transfer to an exact saved beneficiary. Review source/amount/destination, approve with a passkey and show one debit plus its receipt. Staff assists initial passkey registration. The browser origin must match the configured origin/RP ID.
-4. **Attempt substitution (30s).** Run the isolated attack harness. Its approved-transaction tampering scenario changes amount, destination and beneficiary ID after a real test passkey assertion. Each fails with an unchanged balance. This is a simulated gateway test; no public fault-injection endpoint exists.
-5. **Let the permitted AI act (45s).** Authorize an assistant; separately Try a transfer and Try reading a balance before creating the ticket. Both fail. Create its ticket, then Replay; no second ticket appears. Authorize a new grant and revoke it before use to show revocation. This is a signed API demonstration with browser speech disclosure, not agent-to-agent telephony.
-6. **Verify the proof (35s).** Refresh my decisions, download a receipt and export the bank key separately from the known app. Open the independent verifier, enter the trusted origin and import both files. An altered payload fails verification. Signatures attest to application records, not perfect detection or real settlement.
+1. **Prove the agent (40s).** Start a staff-authorized outbound session in Trust desk. Independently open Approval center and select Verify agent session. The signed record identifies the application session and disclosed AI status; it does not authenticate arbitrary telephone audio.
+2. **Verify the caller (45s).** Send a consented genuine or cloned utterance. Show speaker match and authenticity separately, using actual DetectifAI outputs when available. Missing or flagged required evidence holds/refuses protected actions. Do not promise a detector score.
+3. **Let an authorized AI act (65s).** In Approval center, authorize the disclosed support assistant with a passkey. Its permission card allows one ticket for ten minutes. Try the out-of-scope transfer and balance requests: both fail. Create the ticket, then replay: no second ticket. A fresh grant can be revoked before use. Browser speech is a disclosure alongside signed API requests, not agent-to-agent telephony.
+4. **Verify the decision (45s).** Download a decision receipt, obtain the service public key separately from the known app, and open the independent verifier. Check the signed record locally; tampering fails. The signature attests to the application's record, not detector accuracy.
+5. **Optional sensitive-action challenge (45s).** Expand the simulated banking example. With sponsor evidence, approve one exact transfer using a passkey and show one debit. Use the isolated harness to demonstrate amount/recipient substitution rejection. Clearly announce simulated tests; there is no public force-pass endpoint. This is the authorization stress test, not the opening pitch.
 
 ## Before sponsor access
 
-UI, bank proofs, passkeys, restricted delegate, receipts and isolated tests work without DetectifAI. Successful voice transfers require actual sponsor evidence. Typed turns cannot inherit earlier voice verification; demo mock results cannot authorize transfers. The false-negative test supplies high simulated voice scores but omits customer approval, then checks unchanged balance.
+UI, agent-session proofs, passkeys, restricted delegate, receipts and isolated tests work without DetectifAI. Successful voice transfers require actual sponsor evidence. Typed turns cannot inherit earlier voice verification; demo mock results cannot authorize transfers. The false-negative test supplies high simulated voice scores but omits customer approval, then checks unchanged balance.
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/adversarial_demo.py

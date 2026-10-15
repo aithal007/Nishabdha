@@ -1,6 +1,10 @@
-# Nishabdha — UNCLONE Voice Banking Guard
+# Nishabdha — Unclone Agents
 
-A simulated banking voice agent that verifies callers, proves its application-session identity, and executes only the transaction approved by the customer. Python/FastAPI, SQLite, browser WebSockets, DetectifAI adapters, registered passkeys, and a fraud desk. The React interface includes a voice workspace, customer approval app, fraud desk, and reviewed knowledge library. No real payment rail is connected.
+**AI voice agents that verify you, prove themselves, and act only within your permission.** Built for DetectifAI Track 3: Unclone Agents. A copied voice cannot copy your permissions.
+
+The main experience is agent trust: current caller evidence, signed agent-session identity, bounded permissions, and verifiable decision receipts. A disclosed AI delegate may create one support ticket; it cannot read account data or move money. The existing simulated banking flow is an optional sensitive-action sandbox for exact-action approval, substitution attacks, and one-time execution. No real payment rail is connected.
+
+Python/FastAPI, SQLite, React, browser WebSockets, DetectifAI adapters, and registered passkeys. Start in **Voice workspace**, open **Approval center** to verify the agent or authorize a delegate, and use **Trust desk** to inspect decisions.
 
 ## Run locally
 
@@ -16,9 +20,9 @@ Open **http://localhost:8000**. Use that exact origin for passkeys; `127.0.0.1` 
 
 Configure DetectifAI from the actual API documentation supplied to your team. Adapter paths, fields, score direction and scale are configurable examples, not a verified sponsor contract. Use `scripts/check_detectifai.py` to inspect responses before enrollment. Real provider performance is not established by the deterministic security tests.
 
-## Protected transfer demo
+## Optional sensitive-action sandbox: transfers
 
-1. Enter the staff key. In the customer phone tab choose **Set up passkey with bank staff**. Staff authorizes provisioning; the browser registers the customer's authenticator with user verification.
+1. Enter the staff key. In the Approval center choose **Set up passkey with staff**. Staff authorizes provisioning; the browser registers the customer's authenticator with user verification.
 2. Enroll the genuine customer's voice with consent. Use DetectifAI for both speaker and authenticity evidence.
 3. Ask to send an amount to an exact saved beneficiary, such as Amma. The agent freezes the resolved source, recipient account, integer-paise amount, session and expiry.
 4. The phone displays the transaction; approve its exact details with a passkey. Voice confidence or an app token alone cannot authorize a transfer.
@@ -35,7 +39,7 @@ The support-assistant demo authorizes one disclosed AI key to create one support
 
 ## Security behavior
 
-The workspace now shows caller evidence, bank identity, required permission and outcome separately. The customer app has individual delegate ticket/transfer/balance/replay/revocation controls, a visible interaction log, and owned signed decision downloads. The independent receipt verifier requires a bank key obtained separately from the trusted app and verifies locally in the browser. Held/refused requests receive durable records as well as successful actions.
+The workspace now shows caller evidence, agent identity, required permission and outcome separately. The customer app has individual delegate ticket/transfer/balance/replay/revocation controls, a visible interaction log, and owned signed decision downloads. The independent receipt verifier requires a bank key obtained separately from the trusted app and verifies locally in the browser. Held/refused requests receive durable records as well as successful actions.
 
 See [the four-minute demonstration](docs/DEMO.md) for the presentation, isolated attack harness, memory rehearsal and sponsor integration checklist. [Decision API contracts](docs/API.md#versioned-decision-receipts) describe the additive schema and ownership boundaries.
 

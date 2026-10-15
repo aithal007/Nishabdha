@@ -50,21 +50,21 @@ const pages = {
   call: {
     label: "Voice workspace",
     icon: AudioLines,
-    eyebrow: "VOICE BANKING, WITH ASSURANCE",
-    title: "Your permission. Proven.",
+    eyebrow: "TRACK 3 / UNCLONE AGENTS",
+    title: "Verify the caller. Prove the agent.",
     description:
-      "A conversation that feels natural. Controls that keep you in charge.",
+      "AI voice agents that verify you, prove themselves, and act only within your permission.",
   },
   phone: {
-    label: "Customer app",
+    label: "Approval center",
     icon: Smartphone,
-    eyebrow: "YOUR ACCOUNT. YOUR PERMISSION.",
+    eyebrow: "YOUR AGENTS. YOUR PERMISSION.",
     title: "You make the final call.",
     description:
-      "Review the exact action, verify your bank, and approve with a passkey.",
+      "Verify the agent, grant a limited permission, and review proof of every decision.",
   },
   desk: {
-    label: "Fraud desk",
+    label: "Trust desk",
     icon: ShieldCheck,
     eyebrow: "EVIDENCE BEFORE ACTION",
     title: "See the signal. Understand the decision.",
@@ -316,12 +316,12 @@ export default function App() {
               placeholder="Enter staff key"
             />
             <p>
-              Kept in this browser session. Required for fraud-desk and research
+              Kept in this browser session. Required for trust-desk and research
               controls.
             </p>
           </details>
           <div className="sidebar-foot">
-            <span className="demo-dot" /> SIMULATED BANKING <span>v1.0</span>
+            <span className="demo-dot" /> UNCLONE AGENTS <span>v1.0</span>
           </div>
         </div>
       </aside>
@@ -365,8 +365,8 @@ export default function App() {
                 </div>
                 <DialogTitle>Trust before every action.</DialogTitle>
                 <DialogDescription>
-                  Nishabdha brings caller evidence, exact transaction approval,
-                  and signed agent identity into one banking workflow.
+                  Nishabdha brings caller evidence, exact action approval, and
+                  signed agent identity into one voice-agent trust workflow.
                 </DialogDescription>
                 <div className="about-steps">
                   <p>
@@ -379,22 +379,23 @@ export default function App() {
                   <p>
                     <Fingerprint size={19} />
                     <span>
-                      <b>Approve the exact transaction</b>A passkey binds your
-                      confirmation to the frozen recipient and amount.
+                      <b>Authorize a bounded action</b>A passkey binds your
+                      confirmation to a specific action or a limited delegate
+                      grant.
                     </span>
                   </p>
                   <p>
                     <ShieldCheck size={19} />
                     <span>
-                      <b>Verify the bank session</b>A signed record identifies
+                      <b>Verify the agent session</b>A signed record identifies
                       the application session. Telephone audio alone does not
                       establish this proof.
                     </span>
                   </p>
                 </div>
                 <p className="muted">
-                  Banking actions are simulated. Live DetectifAI verification
-                  requires configured vendor credentials.
+                  The banking sandbox uses simulated actions. Live DetectifAI
+                  verification requires configured vendor credentials.
                 </p>
               </DialogContent>
             </Dialog>
@@ -418,12 +419,8 @@ export default function App() {
               <p>{current.description}</p>
             </div>
             <div className="customer-selector">
-              <label htmlFor="customer">DEMO CUSTOMER</label>
-              <select
-                id="customer"
-                aria-label="Demo customer"
-                defaultValue=""
-              />
+              <label htmlFor="customer">DEMO USER</label>
+              <select id="customer" aria-label="Demo user" defaultValue="" />
             </div>
           </div>
           <div className="assurance-strip">
@@ -440,7 +437,7 @@ export default function App() {
               <span className="step-number">02</span>
               <Fingerprint size={20} />
               <p>
-                <b>Customer consent</b>
+                <b>Your permission</b>
                 <span>Exact action · Passkey approval</span>
               </p>
               <span className="step-tag">APP</span>

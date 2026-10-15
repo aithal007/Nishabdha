@@ -2,7 +2,7 @@
 <section
   id="tab-call"
   class="grid call-grid"
-  aria-label="Voice banking workspace"
+  aria-label="Voice agent workspace"
 >
   <div class="card authority-card" aria-label="Authority for this conversation">
     <div class="lbl">PROOF BEFORE ACTION</div>
@@ -15,15 +15,15 @@
         </dd>
       </div>
       <div>
-        <dt>Bank identity</dt>
+        <dt>Agent identity</dt>
         <dd id="authorityBank">
-          Open the customer app to verify the signed outbound session.
+          Open the approval center to verify the signed outbound agent session.
         </dd>
       </div>
       <div>
         <dt>Permission</dt>
         <dd id="authorityPermission">
-          Every transfer needs approval of its exact details.
+          The agent needs permission for the specific action.
         </dd>
       </div>
       <div>
@@ -40,7 +40,7 @@
       <div class="row">
         <span class="panel-icon">N</span>
         <div>
-          <h2>Your banking conversation</h2>
+          <h2>Talk to your verified agent</h2>
           <div class="muted">Nishabdha AI &middot; Voice & text</div>
         </div>
       </div>
@@ -51,7 +51,7 @@
       class="chat"
       role="log"
       aria-live="polite"
-      aria-label="Banking conversation"
+      aria-label="Agent conversation"
     >
       <div class="conversation-empty empty">
         <div class="sound-glyph" aria-hidden="true">
@@ -59,25 +59,24 @@
         </div>
         <h3>Your voice starts it.<br />Your permission decides.</h3>
         <p>
-          Ask about your account or request a banking action.<br />You stay in
-          control of every transfer.
+          Verify the agent before trusting it.<br />You decide what it can do.
         </p>
         <div class="suggestion-row">
-          <span>&ldquo;What's my balance?&rdquo;</span
-          ><span>&ldquo;Block my debit card&rdquo;</span>
+          <span>&ldquo;How can I verify you?&rdquo;</span
+          ><span>&ldquo;Hello&rdquo;</span>
         </div>
       </div>
     </div>
     <form id="typeForm" class="row composer" autocomplete="off">
       <input
         id="typeText"
-        aria-label="Message to bank agent"
-        placeholder="Type a message to your bank agent..."
+        aria-label="Message to AI agent"
+        placeholder="Type a message to your AI agent..."
       /><button id="typeBtn" aria-label="Send message">Send &#8599;</button>
     </form>
     <div class="conversation-footnote">
-      <span class="small-dot"></span> Send a message to start. Transfers always
-      require your passkey approval.
+      <span class="small-dot"></span> Send a message to start. Open the approval
+      center to verify the agent or authorize a support assistant.
     </div>
   </div>
   <div class="session-column">
@@ -145,41 +144,19 @@
   id="tab-phone"
   class="grid customer-grid"
   hidden
-  aria-label="Customer approval app"
+  aria-label="Your approval center"
 >
-  <div class="card customer-account">
-    <div class="row between">
-      <div>
-        <div class="lbl">YOUR TRUSTED BANK APP</div>
-        <h2 id="pName">Loading customer...</h2>
-      </div>
-      <span id="pConn" class="pill grey">offline</span>
-    </div>
-    <div id="pBalance" class="account-balance">
-      <div class="empty">Open the customer app to load balances.</div>
-    </div>
-    <div class="row between">
-      <h2>Approvals & activity</h2>
-      <span class="pill grey">Exact action only</span>
-    </div>
-    <div id="pNotifs" class="list">
-      <div class="empty approval-empty">
-        You're in control.<br />New requests and security alerts will appear
-        here.
-      </div>
-    </div>
-  </div>
   <div class="customer-tools">
     <div class="card">
-      <div class="lbl">BANK & AGENT IDENTITY</div>
+      <div class="lbl">AGENT IDENTITY & PERMISSIONS</div>
       <h2>Trust goes both ways.</h2>
       <p class="muted">
-        Verify the signed bank session or give an assistant a single, limited
+        Verify the signed agent session or give an assistant a single, limited
         permission.
       </p>
-      <button id="pCheckBank" class="ghost">Verify bank session &#8599;</button
+      <button id="pCheckBank" class="ghost">Verify agent session &#8599;</button
       ><button id="provisionPasskey" class="ghost">
-        Set up passkey with bank staff
+        Set up passkey with staff
       </button>
       <div class="divider"></div>
       <div class="row between">
@@ -216,26 +193,26 @@
         class="delegate-transcript"
         role="log"
         aria-live="polite"
-        aria-label="Assistant requests and bank decisions"
+        aria-label="Assistant requests and gateway decisions"
       ></div>
     </div>
     <div class="card">
       <div class="lbl">VERIFIABLE DECISIONS</div>
       <h2>Keep the proof.</h2>
       <p class="muted">
-        Download a masked decision record. Its signature proves what the bank
+        Download a masked decision record. Its signature proves what the agent
         application recorded.
       </p>
       <button id="loadDecisions" class="ghost">Refresh my decisions</button>
       <div id="decisionList" class="list" aria-live="polite"></div>
       <button id="downloadBankKey" class="ghost">
-        Export this bank's public verification key
+        Export the agent service's public verification key
       </button>
       <a href="/static/receipt-verifier.html" target="_blank" rel="noopener"
         >Open independent receipt verifier ↗</a
       >
       <p class="muted">
-        Obtain the bank key from this known app separately from the receipt.
+        Obtain the service key from this known app separately from the receipt.
         Receipts do not certify audio authenticity or real payment settlement.
       </p>
     </div>
@@ -257,8 +234,35 @@
       <div id="enrollMsg" class="muted" role="status"></div>
     </div>
     <div class="card">
-      <h2>Your cards</h2>
-      <div id="pCards" class="list"></div>
+      <details class="sandbox-example">
+        <summary>Optional banking example: simulated cards</summary>
+        <div id="pCards" class="list"></div>
+      </details>
+    </div>
+  </div>
+  <div class="card customer-account">
+    <div class="row between">
+      <div>
+        <div class="lbl">YOUR APPROVAL CENTER</div>
+        <h2 id="pName">Loading profile...</h2>
+      </div>
+      <span id="pConn" class="pill grey">offline</span>
+    </div>
+    <details class="sandbox-example">
+      <summary>Optional sensitive-action example: simulated banking</summary>
+      <div id="pBalance" class="account-balance">
+        <div class="empty">Loading the simulated banking example.</div>
+      </div>
+    </details>
+    <div class="row between">
+      <h2>Approvals & activity</h2>
+      <span class="pill grey">Exact action only</span>
+    </div>
+    <div id="pNotifs" class="list">
+      <div class="empty approval-empty">
+        You're in control.<br />New requests and security alerts will appear
+        here.
+      </div>
     </div>
   </div>
 </section>
@@ -285,13 +289,13 @@
     <div id="dTickets" class="list"><div class="empty">No tickets.</div></div>
     <div class="row">
       <button id="dAudit" class="ghost">Verify audit log</button
-      ><button id="dReset" class="danger">Reset demo bank</button>
+      ><button id="dReset" class="danger">Reset action sandbox</button>
     </div>
     <details class="outbound-control">
-      <summary>Open an outbound bank session</summary>
+      <summary>Open an outbound agent session</summary>
       <p class="muted">
         Staff authorization required. Create a browser demo session for the
-        selected customer, then verify its signed proof in the customer app.
+        selected user, then verify its signed proof in the approval center.
       </p>
       <label class="lbl" for="outboundReason">Call reason</label>
       <input
@@ -368,9 +372,9 @@
         <button
           type="button"
           class="ghost"
-          data-q="How do I verify the bank agent session?"
+          data-q="How do I verify the agent session?"
         >
-          Verify a bank agent
+          Verify agent identity
         </button>
         <button
           type="button"
@@ -385,7 +389,7 @@
     <form id="ragForm" class="row" autocomplete="off" style="margin-top: 4px">
       <input
         id="ragInput"
-        placeholder="Type a banking or scam query..."
+        placeholder="Ask about agent identity, permissions, or security..."
         style="flex: 1"
         required
       />

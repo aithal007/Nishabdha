@@ -21,14 +21,14 @@
         verification makes no network requests.
       </p>
       <form id="receiptForm">
-        <label for="expectedIssuer">Bank origin you independently trust</label>
+        <label for="expectedIssuer">Agent service origin you independently trust</label>
         <input
           id="expectedIssuer"
           type="url"
-          placeholder="https://your-bank.example"
+          placeholder="https://your-agent.example"
           required
         />
-        <label for="trustedKeyFile">Trusted bank public key file</label>
+        <label for="trustedKeyFile">Trusted service public key file</label>
         <input
           id="trustedKeyFile"
           type="file"
@@ -36,8 +36,8 @@
           required
         />
         <p class="hint">
-          Obtain this key separately from the known bank app. A key supplied
-          alongside an untrusted receipt does not establish bank identity.
+          Obtain this key separately from the known agent app. A key supplied
+          alongside an untrusted receipt does not establish agent identity.
         </p>
         <label for="receiptFile">Signed decision receipt</label>
         <input
@@ -53,11 +53,11 @@
       </p>
       <pre id="verifiedPayload" hidden></pre>
       <p class="hint">
-        A valid signature proves that the configured bank key signed this
+        A valid signature proves that the configured service key signed this
         historical record. It does not prove perfect deepfake detection,
         customer understanding, current permission, or real payment settlement.
         Historical receipts remain verifiable after a grant expires;
-        bank-session proofs have their own expiry checks.
+        Agent session proofs have their own expiry checks.
       </p>
     </main>
   </body>

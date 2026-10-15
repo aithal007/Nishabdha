@@ -12,14 +12,21 @@ test("navigation, customer data and live typed call retain their contracts", asy
     page.getByRole("button", { name: "Voice workspace" }),
   ).toBeEnabled();
   await expect(
-    page.getByRole("heading", { name: "Your permission. Proven." }),
+    page.getByRole("heading", { name: "Verify the caller. Prove the agent." }),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/voice-desktop.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Customer app", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Approval center", exact: true })
+    .click();
   await expect(page.locator("#pName")).toHaveText("Ananya Rao");
+  await page
+    .getByText("Optional sensitive-action example: simulated banking", {
+      exact: true,
+    })
+    .click();
   await expect(page.locator("#pBalance")).toContainText("Savings");
   await page.screenshot({
     path: "test-results/customer-desktop.png",
@@ -110,12 +117,14 @@ test("real browser WebAuthn registration and one-use delegate demo", async ({
   page.on("dialog", (dialog) => dialog.accept());
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "Customer app", exact: true }),
+    page.getByRole("button", { name: "Approval center", exact: true }),
   ).toBeEnabled();
   await page.locator(".staff-access summary").click();
   await page.locator("#staffKey").fill("staff-preview");
   await page.locator("#staffKey").press("Tab");
-  await page.getByRole("button", { name: "Customer app", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Approval center", exact: true })
+    .click();
   await page.locator("#provisionPasskey").click();
   await expect(page.locator("#securityStatus")).toContainText(
     "Passkey registered",
@@ -194,7 +203,7 @@ test("real browser WebAuthn registration and one-use delegate demo", async ({
   expect(
     await page.evaluate(() => localStorage.getItem("staffKey")),
   ).toBeNull();
-  await page.getByRole("button", { name: "Fraud desk", exact: true }).click();
+  await page.getByRole("button", { name: "Trust desk", exact: true }).click();
   await expect(page.locator("#dTickets")).toContainText(
     "Authorized AI support ticket",
   );
@@ -210,7 +219,9 @@ test("mobile navigation and policy screen fit the viewport", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Open navigation" }).click();
-  await page.getByRole("button", { name: "Customer app", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Approval center", exact: true })
+    .click();
   await expect(page.locator("#pName")).toHaveText("Ananya Rao");
   expect(
     await page.evaluate(
@@ -241,19 +252,21 @@ test("staff outbound session proof verifies in the customer app", async ({
 }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "Fraud desk", exact: true }),
+    page.getByRole("button", { name: "Trust desk", exact: true }),
   ).toBeEnabled();
   await page.locator(".staff-access summary").click();
   await page.locator("#staffKey").fill("staff-preview");
   await page.locator("#staffKey").press("Tab");
-  await page.getByRole("button", { name: "Fraud desk", exact: true }).click();
+  await page.getByRole("button", { name: "Trust desk", exact: true }).click();
   await page.locator(".outbound-control summary").click();
   await page.locator("#dOutbound").click();
   await expect(page.locator("#callState")).toContainText("Connected");
-  await page.getByRole("button", { name: "Customer app", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Approval center", exact: true })
+    .click();
   await page.locator("#pCheckBank").click();
   await expect(page.locator("#securityStatus")).toContainText(
-    "Verified AI bank session",
+    "Verified AI agent session",
   );
   await page
     .getByRole("button", { name: "Voice workspace", exact: true })
@@ -286,8 +299,8 @@ test("workspace accessibility and mobile keyboard navigation", async ({
   };
   for (const name of [
     "Voice workspace",
-    "Customer app",
-    "Fraud desk",
+    "Approval center",
+    "Trust desk",
     "Knowledge library",
   ]) {
     await page.getByRole("button", { name, exact: true }).click();

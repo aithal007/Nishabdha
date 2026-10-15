@@ -74,7 +74,7 @@ async def create_call(body: CallCreate, db: AsyncSession = Depends(get_db)):
     """Start an inbound call. Returns the call token for the WebSocket / REST turns."""
     call, sess, token = await _open_session(db, customer_id=body.customer_id, caller_number=body.caller_number, lang=body.lang, channel=body.channel, direction="inbound")
     if sess.customer_id:
-        await hub.publish(customer_topic(sess.customer_id), "call_connected", {"call_id": call.id, "message": "You are connected to Unclone Bank's verified phone line."})
+        await hub.publish(customer_topic(sess.customer_id), "call_connected", {"call_id": call.id, "message": "AI agent session connected. Verify its signed identity in the approval center."})
     if body.greet:
         # greeting is spoken when the caller's WebSocket connects (so the audio isn't lost); REST clients get it via /events
         sess.greet_pending = True

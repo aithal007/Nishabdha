@@ -25,7 +25,7 @@ function PolicyChat() {
       await agent.runAgent();
     } catch {
       setError(
-        "The policy assistant is unavailable. Your banking session has not been changed. Try again.",
+        "The policy assistant is unavailable. Your agent session has not been changed. Try again.",
       );
     }
   };
@@ -39,7 +39,7 @@ function PolicyChat() {
     <div className="policy-chat">
       <div className="assistant-scope">
         <ShieldCheck size={16} />
-        <span>Reviewed policies only · No account access or banking tools</span>
+        <span>Reviewed policies only · No account access or action tools</span>
       </div>
       <div className="policy-messages" role="log" aria-live="polite">
         {!messages.length && (
@@ -58,7 +58,7 @@ function PolicyChat() {
             <div className="policy-prompts">
               {[
                 "How do I approve a transfer with a passkey?",
-                "How do I verify the bank agent session?",
+                "How do I verify the agent session?",
                 "What can the support assistant delegate do?",
               ].map((q) => (
                 <button key={q} disabled={!isReady} onClick={() => submit(q)}>
@@ -129,7 +129,7 @@ export default function PolicyAssistant() {
           policy: new HttpAgent({
             url: "/api/copilot/policy",
             agentId: "policy",
-            description: "Read-only reviewed banking policies",
+            description: "Read-only reviewed agent trust policies",
           }),
         },
       }),

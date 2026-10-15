@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     # ---------------- App ----------------
-    app_name: str = "UNCLONE Voice Banking Guard"
+    app_name: str = "Nishabdha - Unclone Agents"
     app_env: Literal["dev", "demo", "test"] = "dev"
     host: str = "0.0.0.0"
     port: int = 8000

@@ -133,16 +133,16 @@ const Security = {
     const notice = await api("/api/app/bank-call", { headers: appH() });
     if (!notice.genuine_bank_call) {
       $("authorityBank").textContent =
-        "No authorized outbound bank session to verify.";
+        "No authorized outbound agent session to verify.";
       this.status(
-        "No active authorized outbound bank session. Do not rely on a caller's code.",
+        "No active authorized outbound agent session. Do not rely on a caller's code.",
       );
       return;
     }
     const keys = await api("/.well-known/jwks.json");
     if (keys.issuer !== location.origin)
       throw new Error(
-        "Bank origin configuration does not match this application.",
+        "Service origin configuration does not match this application.",
       );
     const signed = await api(
       `/api/app/bank-call/${encodeURIComponent(notice.notice_id)}/proof`,
@@ -162,12 +162,12 @@ const Security = {
     this.bankProofExpiry = setTimeout(
       () => {
         $("authorityBank").textContent =
-          "Bank session proof expired. Verify the session again.";
+          "Agent session proof expired. Verify the session again.";
       },
       Math.max(0, p.exp * 1000 - Date.now()),
     );
     this.status(
-      `Verified AI bank session ${p.call_id}: ${p.reason}. This verifies the app session, not arbitrary phone audio.`,
+      `Verified AI agent session ${p.call_id}: ${p.reason}. This verifies the app session, not arbitrary phone audio.`,
     );
   },
   canonical(x) {
@@ -226,7 +226,7 @@ const Security = {
     this.delegate = { key, grant, customer_id: cust().id };
     $("delegateTranscript").replaceChildren();
     this.delegateTurn(
-      "BANK",
+      "GATEWAY",
       "Permission granted for one support ticket. Voice disclosure alone grants no access.",
     );
     $("delegatePermission").hidden = false;
@@ -325,7 +325,7 @@ const Security = {
     );
     if (!intact) throw new Error("Ticket receipt signature failed");
     this.delegateTurn(
-      "BANK",
+      "GATEWAY",
       `Ticket ${sent.result.ticket_id} created. Signed receipt verified. The one-use permission is consumed.`,
     );
     $("delegateReplay").hidden = false;
@@ -362,7 +362,7 @@ const Security = {
     } catch (e) {
       if (e.status !== 403) throw e;
       this.delegateTurn(
-        "BANK",
+        "GATEWAY",
         `Refused: ${e.message}${e.decisionId ? " · decision " + e.decisionId : ""}. No money or account data released.`,
       );
     }
@@ -382,7 +382,7 @@ const Security = {
     } catch (e) {
       if (e.status !== 403) throw e;
       this.delegateTurn(
-        "BANK",
+        "GATEWAY",
         `Replay refused: ${e.message}. No second ticket created.`,
       );
     }
@@ -436,7 +436,7 @@ const Security = {
     ])
       $(id).hidden = true;
     this.delegateTurn(
-      "BANK",
+      "GATEWAY",
       "Permission revoked. Subsequent signed requests will be refused.",
     );
     $("runDelegate").hidden = true;
@@ -468,7 +468,7 @@ $("downloadBankKey").onclick = async () => {
   try {
     const jwks = await api("/.well-known/jwks.json");
     if (jwks.issuer !== location.origin)
-      throw new Error("Bank origin mismatch");
+      throw new Error("Service origin mismatch");
     Security.download("trusted-bank-key.json", {
       issuer: location.origin,
       keys: jwks.keys,
@@ -491,9 +491,9 @@ $("customer").addEventListener?.("change", () => {
     $(id).hidden = true;
   $("delegateTranscript").replaceChildren();
   $("decisionList").replaceChildren();
-  $("authorityBank").textContent = "Not verified for this customer.";
+  $("authorityBank").textContent = "Not verified for this user.";
   Security.status(
-    "Customer changed. Verify this customer's session and permissions separately.",
+    "User changed. Verify this user's session and permissions separately.",
   );
 });
 (async () => {

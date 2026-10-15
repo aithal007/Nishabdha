@@ -1911,3 +1911,13 @@ main#workspace {
   border-bottom: 1px solid #dce8e4;
   overflow-wrap: anywhere;
 }
+
+.sandbox-example {
+  margin: 16px 0;
+}
+.sandbox-example summary {
+  cursor: pointer;
+  color: var(--muted, #526b77);
+  font-size: 13px;
+  padding: 12px 0;
+}

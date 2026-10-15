@@ -931,7 +931,7 @@ class CallSession:
                 "call_connected",
                 {
                     "call_id": self.call_id,
-                    "message": "You are connected to Unclone Bank's verified phone line.",
+                    "message": "AI agent session connected. Verify its signed identity in the approval center.",
                 },
             )
 

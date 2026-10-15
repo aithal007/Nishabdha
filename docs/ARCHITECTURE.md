@@ -1,13 +1,17 @@
 # Nishabdha architecture
 
-Nishabdha is a browser-based voice banking prototype for the DetectifAI **Track 3: Unclone Agents** challenge. It demonstrates two linked trust questions:
+Nishabdha is a browser-based voice-agent trust prototype for the DetectifAI **Track 3: Unclone Agents** challenge. It demonstrates two linked trust questions:
 
 1. **Who is making this request?** A voice request is checked against evidence from the current utterance, including speaker comparison and synthetic-audio analysis where DetectifAI is configured.
-2. **What agent is acting, and what may it do?** The customer app can verify a signed bank-session record. A separate customer-authorized AI delegate can perform one narrowly scoped support operation.
+2. **What agent is acting, and what may it do?** The approval center can verify a signed agent-session record. The existing signing issuer and backend proof type remain compatible with the banking sandbox. A separate customer-authorized AI delegate can perform one narrowly scoped support operation.
 
 The central design rule is that speech recognition and language models may help interpret a request, but they do not authorize or execute banking actions. A deterministic policy and execution gateway makes that decision. Sensitive transfers require both current voice evidence and a passkey approval of the exact frozen transaction.
 
-This is a **simulated banking demo**, not a production banking platform. Voice evidence is a risk signal, application signatures prove claims made by a configured key, and a passkey assertion proves a WebAuthn ceremony occurred for this relying party. None alone establishes legal identity or guarantees that a user understood a screen.
+The primary product is **voice-agent trust**, with a bounded support assistant and an optional **simulated banking sandbox**. It is not a production banking platform. Voice evidence is a risk signal, application signatures prove claims made by a configured key, and a passkey assertion proves a WebAuthn ceremony occurred for this relying party. None alone establishes legal identity or guarantees that a user understood a screen.
+
+## Track 3 interface
+
+The voice workspace leads with caller verification and agent identity. The approval center puts signed identity, the one-ticket AI grant, revocation, replay tests, and receipt verification first. Account data is collapsed under an optional sensitive-action example. Trust desk exposes decision evidence. Existing bank-named routes, claims, and storage remain compatible; changing the presentation does not expand any agent permission.
 
 ## System at a glance
 

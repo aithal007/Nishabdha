@@ -12,12 +12,12 @@ LANGS = ("en", "hi", "kn")
 
 T: dict[str, dict[str, str]] = {
     "greeting": {
-        "en": "Hello, welcome to Unclone Bank. How can I help you today?",
+        "en": "Hello, I am Nishabdha, an AI voice agent. Open the approval center to verify my session and control my permissions. How can I help?",
         "hi": "नमस्ते, अनक्लोन बैंक में आपका स्वागत है। मैं आपकी क्या मदद कर सकती हूँ?",
         "kn": "ನಮಸ್ಕಾರ, ಅನ್‌ಕ್ಲೋನ್ ಬ್ಯಾಂಕ್‌ಗೆ ಸ್ವಾಗತ. ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
     },
     "greeting_outbound": {
-        "en": "Hello {name}, this is Unclone Bank. To confirm this call is really from us, the code {code_spoken} is now showing in your bank app.",
+        "en": "Hello {name}, I am Nishabdha, an AI voice agent. Verify my signed session in your approval center. The matching code is {code_spoken}; the code alone is not proof of identity.",
         "hi": "नमस्ते {name}, मैं अनक्लोन बैंक से बोल रही हूँ। यह कॉल असली है, इसकी पुष्टि के लिए आपके बैंक ऐप में कोड {code_spoken} दिख रहा है।",
         "kn": "ನಮಸ್ಕಾರ {name}, ಇದು ಅನ್‌ಕ್ಲೋನ್ ಬ್ಯಾಂಕ್. ಈ ಕರೆ ನಿಜವಾಗಿಯೂ ನಮ್ಮದು ಎಂದು ಖಚಿತಪಡಿಸಲು ನಿಮ್ಮ ಬ್ಯಾಂಕ್ ಆಪ್‌ನಲ್ಲಿ ಕೋಡ್ {code_spoken} ತೋರಿಸುತ್ತಿದೆ.",
     },
@@ -97,7 +97,7 @@ T: dict[str, dict[str, str]] = {
         "kn": "ದಯವಿಟ್ಟು ಆತುರಪಡಬೇಡಿ. ಬ್ಯಾಂಕ್ ಎಂದಿಗೂ ಆತುರಪಡಿಸುವುದಿಲ್ಲ, OTP ಕೇಳುವುದಿಲ್ಲ ಅಥವಾ ಹಣವನ್ನು 'ಸುರಕ್ಷಿತ ಖಾತೆ'ಗೆ ಕಳುಹಿಸಲು ಹೇಳುವುದಿಲ್ಲ.",
     },
     "goodbye": {
-        "en": "Thank you for calling Unclone Bank. Goodbye.",
+        "en": "Thank you for speaking with Nishabdha. Goodbye.",
         "hi": "अनक्लोन बैंक को कॉल करने के लिए धन्यवाद। नमस्ते।",
         "kn": "ಅನ್‌ಕ್ಲೋನ್ ಬ್ಯಾಂಕ್‌ಗೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು. ವಂದನೆಗಳು.",
     },

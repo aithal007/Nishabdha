@@ -28,7 +28,7 @@ globalThis.NishabdhaReceipt = {
   async verify(record, trust, issuer) {
     if (!issuer || new URL(issuer).origin !== issuer || trust.issuer !== issuer)
       throw new Error(
-        "Expected bank origin must match your separately trusted key file",
+        "Expected service origin must match your separately trusted key file",
       );
     if (
       !record ||

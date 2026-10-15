@@ -340,7 +340,7 @@ const Mic = {
     b.textContent = !this.on
       ? "Mic off"
       : Speaker.busy
-        ? "Bank speaking · tap to talk"
+        ? "Agent speaking · tap to talk"
         : "Listening";
     b.setAttribute("aria-pressed", String(this.on));
   },
@@ -386,7 +386,7 @@ const Call = {
     if (ev === "authority_state") {
       $("authorityVoice").textContent = `Speaker: ${d.speaker || d.voice} · Authenticity: ${d.authenticity || d.voice}`;
       $("authorityPermission").textContent = d.permission === "passkey_required"
-        ? "Passkey approval of the exact transaction is required." : "Bank policy applies to this request.";
+        ? "Passkey approval of the exact transaction is required." : "Action policy applies to this request.";
       $("authorityOutcome").textContent = `${d.outcome}: ${d.message}`;
       $("authorityMode").textContent = d.mode === "simulated"
         ? "SIMULATED EVIDENCE — authorization demonstration only."
@@ -421,7 +421,7 @@ const Call = {
     $("dOutbound").disabled = true;
     $("chat").innerHTML = "";
     $("authorityVoice").textContent = "Speaker: not checked · Authenticity: not checked";
-    $("authorityBank").textContent = "Not verified for this session. Open the customer app to verify.";
+    $("authorityBank").textContent = "Not verified for this session. Open the approval center to verify.";
     $("authorityOutcome").textContent = "Connected. No action executed.";
     try {
       const r = outbound
@@ -493,7 +493,7 @@ const Call = {
     $("customer").disabled = false;
     $("dOutbound").disabled = false;
     this.setState("Not connected");
-    $("authorityBank").textContent = "Session ended. Verify a new bank session before relying on its identity.";
+    $("authorityBank").textContent = "Session ended. Verify a new agent session before relying on its identity.";
   },
 };
 $("startBtn").onclick = () => Call.start();
@@ -570,7 +570,7 @@ const Phone = {
     this.forId = c.id;
     $("pName").textContent = c.name;
     $("pNotifs").innerHTML =
-      '<div class="empty">Approvals and alerts from the bank appear here.</div>';
+      '<div class="empty">Action approvals and agent alerts appear here.</div>';
     this.loadMe();
     this.loadPending();
     this.ws = new WebSocket(
@@ -599,7 +599,7 @@ const Phone = {
               `<div class="lbl">Savings ··${esc(a.number_last4)}</div><div class="big" style="font-size:1.8rem">${esc(a.balance)}</div>`,
           )
           .join("") +
-        `<div class="muted">Voice ID: ${me.voice_enrolled ? "set up" : "not set up"}${me.voice_locked ? " · locked by bank" : ""}</div>`;
+        `<div class="muted">Voice ID: ${me.voice_enrolled ? "set up" : "not set up"}${me.voice_locked ? " · locked for review" : ""}</div>`;
       $("pCards").innerHTML = me.cards
         .map(
           (
@@ -677,7 +677,7 @@ const Phone = {
       );
     } else if (ev === "incoming_bank_call" || ev === "bank_call_verification") {
       this.add(
-        `<div class="lbl">Bank session notice — verify its signature below</div>
+        `<div class="lbl">Agent session notice — verify its signature below</div>
         <div class="muted">Session matching aid (not identity proof):</div><div class="code">${esc(d.code)}</div>
         ${d.reason ? `<div class="muted">${esc(d.reason)}</div>` : ""}
         <div class="row"><button class="ghost" data-v="confirm">Codes match</button><button class="danger" data-v="report">Code is different</button></div>`,
@@ -725,7 +725,7 @@ $("pCheckBank").onclick = async () => {
     if (r.genuine_bank_call) Phone.on("incoming_bank_call", r);
     else
       Phone.add(
-        `<div class="lbl">No call from the bank</div><div>${esc(r.message)}</div>`,
+        `<div class="lbl">No authorized outbound agent session</div><div>${esc(r.message)}</div>`,
         "alert",
       );
   } catch (e) {
@@ -1249,7 +1249,7 @@ $("dReset").onclick = async () => {
     $("dReset").textContent = "Click again to wipe all data";
     setTimeout(() => {
       $("dReset").dataset.armed = "";
-      $("dReset").textContent = "Reset demo bank";
+      $("dReset").textContent = "Reset action sandbox";
     }, 4000);
     return;
   }
@@ -1259,14 +1259,14 @@ $("dReset").onclick = async () => {
     Desk.sel = null;
     Desk.renderCalls();
     $("sLog").innerHTML = "";
-    toast("Demo bank reset");
+    toast("Action sandbox reset");
     Desk.loadTickets();
     Phone.reopen();
   } catch (e) {
     toast(e.message);
   }
   $("dReset").dataset.armed = "";
-  $("dReset").textContent = "Reset demo bank";
+  $("dReset").textContent = "Reset action sandbox";
 };
 
 // ---------------------------------------------------------------- knowledge & rag
@@ -1338,7 +1338,7 @@ const Knowledge = {
       $("ragStatus").className = res.researched ? "pill warn" : "pill";
 
       $("ragSpoken").textContent =
-        res.spoken_summary || "Answer retrieved from banking knowledge base.";
+        res.spoken_summary || "Answer retrieved from the reviewed policy library.";
 
       const verif = res.verification || {};
       const sup = verif.supported || 0;
