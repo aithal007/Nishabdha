@@ -19,6 +19,7 @@ from app.core.agent_identity import (
     sign_record,
 )
 from app.core.agent_models import AgentGrant, AgentNonce, AgentSupportTicket
+from app.core.decisions import envelope, persist_decision, record_decision
 from app.db import SessionLocal, get_db
 from app.models import AuditEntry, BankCallNotice, Call, Customer, utcnow
 from app.security import require_app_customer, require_staff
@@ -33,7 +34,7 @@ class GrantInput(BaseModel):
 
 class ExecuteInput(BaseModel):
     proof: str = Field(max_length=8192)
-    action: str = "support_ticket.create"
+    action: str = Field(default="support_ticket.create", max_length=64)
     subject: str = Field(min_length=1, max_length=200)
 
 
@@ -145,7 +146,37 @@ async def revoke(grant_id: str, c: Customer = Depends(require_app_customer)):
 async def nonce(grant_id: str, db: AsyncSession = Depends(get_db)):
     grant = await db.get(AgentGrant, grant_id)
     if not grant or grant.revoked or grant.uses >= 1 or grant.expires_at <= utcnow():
-        raise HTTPException(403, "grant unavailable")
+        owner = grant.customer_id if grant else None
+        await db.rollback()
+        signed = await persist_decision(
+            customer_id=owner,
+            request_id=grant_id,
+            operation="delegate_request",
+            actor_type="delegate_claim",
+            outcome="denied",
+            reason="grant unavailable",
+        )
+        from app.core import audit
+        from app.events import DASHBOARD, hub
+
+        decision = {
+            "grant_id": grant_id,
+            "action": "delegate_request",
+            "outcome": "denied",
+            "reason": "grant unavailable",
+            "decision_id": signed["payload"]["decision_id"],
+        }
+        await audit.append(
+            "agent_decision", {**decision, "signature": signed["signature"]}
+        )
+        await hub.publish(DASHBOARD, "ticket_agent_decision", decision)
+        raise HTTPException(
+            403,
+            "grant unavailable",
+            headers={
+                "X-Decision-ID": signed["payload"]["decision_id"],
+            },
+        )
     n = AgentNonce(
         id=secrets.token_urlsafe(32),
         grant_id=grant.id,
@@ -219,6 +250,16 @@ async def _execute_request(grant_id: str, body: ExecuteInput):
             "iat": int(time.time()),
         }
         receipt = sign_record(result)
+        record = await record_decision(
+            db,
+            customer_id=grant.customer_id,
+            request_id=grant.id,
+            operation=body.action,
+            actor_type="delegated_ai",
+            outcome="executed",
+            action_hash=digest({"action": body.action, "subject": body.subject}),
+        )
+        result.update(decision_id=record.id, decision_receipt=envelope(record))
         await db.commit()
         return {**result, "receipt": receipt}
 
@@ -238,17 +279,32 @@ async def execute(grant_id: str, body: ExecuteInput):
             "customer_id": result["customer_id"],
         }
     except HTTPException as exc:
+        async with SessionLocal() as db:
+            grant = await db.get(AgentGrant, grant_id)
+            owner = grant.customer_id if grant else None
+        signed = await persist_decision(
+            customer_id=owner,
+            request_id=grant_id,
+            operation=body.action,
+            actor_type="delegate_claim",
+            outcome="denied",
+            reason=str(exc.detail),
+            action_hash=digest({"action": body.action, "subject": body.subject}),
+        )
         decision = {
             "grant_id": grant_id,
             "action": body.action,
             "outcome": "denied",
             "reason": exc.detail,
+            "decision_id": signed["payload"]["decision_id"],
         }
+        exc.headers = {**(exc.headers or {}), "X-Decision-ID": decision["decision_id"]}
         await audit.append(
             "agent_decision", {**decision, "signature": sign_record(decision)}
         )
         await hub.publish(DASHBOARD, "ticket_agent_decision", decision)
         raise
+    decision["decision_id"] = result["decision_id"]
     await audit.append(
         "agent_decision", {**decision, "signature": sign_record(decision)}
     )

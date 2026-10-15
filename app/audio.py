@@ -82,7 +82,7 @@ def _ffmpeg_exe() -> str:
         return "ffmpeg"
 
 
-def decode_any(data: bytes) -> np.ndarray:
+def decode_any(data: bytes, max_seconds: float | None = None) -> np.ndarray:
     """Decode wav/mp3/webm/ogg/m4a bytes -> 16 kHz mono float32."""
     if not data:
         raise AudioError("empty audio")
@@ -90,13 +90,27 @@ def decode_any(data: bytes) -> np.ndarray:
     try:
         import soundfile as sf
 
-        x, sr = sf.read(io.BytesIO(data), dtype="float32", always_2d=True)
+        with sf.SoundFile(io.BytesIO(data)) as recording:
+            sr = recording.samplerate
+            if max_seconds is not None and (
+                recording.frames > sr * max_seconds
+                or recording.channels > 2
+                or sr > 192000
+            ):
+                raise AudioError(f"audio exceeds the {max_seconds:g}s utterance or channel/rate limit")
+            frames = int(sr * max_seconds) + 1 if max_seconds is not None else -1
+            x = recording.read(frames=frames, dtype="float32", always_2d=True)
+            if max_seconds is not None and len(x) > sr * max_seconds:
+                raise AudioError(f"audio exceeds the {max_seconds:g}s utterance limit")
         return resample(x.mean(axis=1), sr)
+    except AudioError:
+        raise
     except Exception:
         pass
     try:
+        duration_args = ["-t", str(max_seconds + 1 / SR)] if max_seconds is not None else []
         proc = subprocess.run(
-            [_ffmpeg_exe(), "-v", "error", "-i", "pipe:0", "-ac", "1", "-ar", str(SR), "-f", "f32le", "pipe:1"],
+            [_ffmpeg_exe(), "-v", "error", "-i", "pipe:0", *duration_args, "-ac", "1", "-ar", str(SR), "-f", "f32le", "pipe:1"],
             input=data,
             capture_output=True,
             timeout=30,
@@ -105,6 +119,8 @@ def decode_any(data: bytes) -> np.ndarray:
         raise AudioError(f"ffmpeg failed: {e}") from e
     if proc.returncode != 0 or not proc.stdout:
         raise AudioError("could not decode audio (unsupported or corrupt file)")
+    if max_seconds is not None and len(proc.stdout) // 4 > SR * max_seconds:
+        raise AudioError(f"audio exceeds the {max_seconds:g}s utterance limit")
     return np.frombuffer(proc.stdout, dtype=np.float32).copy()
 
 
@@ -116,6 +132,15 @@ def to_wav_bytes(x: np.ndarray, sr: int = SR) -> bytes:
         w.setframerate(sr)
         w.writeframes(float_to_pcm16(x))
     return bio.getvalue()
+
+
+def write_pcm16_wav(path: str, pcm: bytearray, sr: int = SR) -> None:
+    """Write the existing bounded recording without whole-call float/copy allocations."""
+    with wave.open(path, "wb") as recording:
+        recording.setnchannels(1)
+        recording.setsampwidth(2)
+        recording.setframerate(sr)
+        recording.writeframes(pcm)
 
 
 # ---------------------------------------------------------------- quality

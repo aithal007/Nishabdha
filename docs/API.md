@@ -132,3 +132,20 @@ End the call with `POST /api/calls/{id}/end`.
 | `GET /api/health` | engine chain, circuit breakers, keys present |
 | `POST /api/admin/voice-check` | `file` (+ `customer_id`); raw scores for any clip, good for showing judges a clone |
 | `POST /api/admin/calibrate-spoof` | `genuine` files; suggested local threshold |
+
+## Versioned decision receipts
+
+| Endpoint | Authorization and behavior |
+|---|---|
+| `GET /api/app/decisions` | Customer token; latest 30 owned signed decisions |
+| `GET /api/app/decisions/{decision_id}` | Customer token; 404 for another customer's record |
+| `GET /api/decisions` | Staff key; latest 100 signed decisions |
+| `/static/receipt-verifier.html` | Independent browser verifier; no verification network request |
+
+Exports contain `{payload, signature}`. `signature` is an ES256 JWT; verification checks signed claims exactly against the displayed payload and a separately configured bank issuer/key. Historical decision records do not expire like session proofs or grants.
+
+Schema `nishabdha.decision.v1` includes decision/request IDs, issuer, operation, actor type, action hash where applicable, pseudonymous subject reference, policy version, outcome, finite reason codes/message, timestamp and evidence references. It excludes names, account numbers, app tokens, raw audio and numerical scores. `banking_mode` is always `simulated`; `mode` distinguishes test/mock evidence (`simulated`), sponsor evidence (`provider`) and other application decisions (`application`). Capture transport distinguishes typed, recorded upload and browser stream; it does not attest to physical microphone origin.
+
+Successful transfer/delegate results add `decision_id` and `decision_receipt`. Refused delegate execution and owned failed passkey verification preserve original HTTP status/detail and add `X-Decision-ID`; receipt reads still require authentication. Unverified delegate requests use actor type `delegate_claim`.
+
+Safe `authority_state` call events expose decision ID, outcome, check completion, required permission, finite explanation and evidence/capture modes. Raw scores/flags remain staff-only. Staff reports add `decision_receipts` beside existing transaction receipts and audit integrity.

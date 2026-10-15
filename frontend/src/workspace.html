@@ -4,6 +4,37 @@
   class="grid call-grid"
   aria-label="Voice banking workspace"
 >
+  <div class="card authority-card" aria-label="Authority for this conversation">
+    <div class="lbl">PROOF BEFORE ACTION</div>
+    <h2>A copied voice cannot copy your permissions.</h2>
+    <dl class="authority-grid">
+      <div>
+        <dt>Caller evidence</dt>
+        <dd id="authorityVoice">
+          Speaker: not checked · Authenticity: not checked
+        </dd>
+      </div>
+      <div>
+        <dt>Bank identity</dt>
+        <dd id="authorityBank">
+          Open the customer app to verify the signed outbound session.
+        </dd>
+      </div>
+      <div>
+        <dt>Permission</dt>
+        <dd id="authorityPermission">
+          Every transfer needs approval of its exact details.
+        </dd>
+      </div>
+      <div>
+        <dt>Outcome</dt>
+        <dd id="authorityOutcome">No action requested.</dd>
+      </div>
+    </dl>
+    <p id="authorityMode" class="muted">
+      No voice result yet. Text input carries no voice verification.
+    </p>
+  </div>
   <div class="card conversation-card">
     <div class="row between panel-heading">
       <div class="row">
@@ -26,7 +57,7 @@
         <div class="sound-glyph" aria-hidden="true">
           <i></i><i></i><i></i><i></i><i></i>
         </div>
-        <h3>A familiar voice.<br />A safer conversation.</h3>
+        <h3>Your voice starts it.<br />Your permission decides.</h3>
         <p>
           Ask about your account or request a banking action.<br />You stay in
           control of every transfer.
@@ -42,9 +73,7 @@
         id="typeText"
         aria-label="Message to bank agent"
         placeholder="Type a message to your bank agent..."
-      /><button id="typeBtn" aria-label="Send message">
-        Send &#8599;
-      </button>
+      /><button id="typeBtn" aria-label="Send message">Send &#8599;</button>
     </form>
     <div class="conversation-footnote">
       <span class="small-dot"></span> Send a message to start. Transfers always
@@ -56,6 +85,10 @@
       <div class="row between">
         <span class="lbl">VOICE SESSION</span
         ><span class="session-tag">BROWSER AUDIO</span>
+      </div>
+      <div class="row call-actions">
+        <button id="startBtn">Start a secure call &#8599;</button
+        ><button id="endBtn" class="danger" disabled>End call</button>
       </div>
       <div class="voice-orbit" aria-hidden="true">
         <div class="orbit-ring"></div>
@@ -76,10 +109,6 @@
           <option value="kn">ಕನ್ನಡ</option>
         </select></label
       >
-      <div class="row call-actions">
-        <button id="startBtn">Start a secure call &#8599;</button
-        ><button id="endBtn" class="danger" disabled>End call</button>
-      </div>
       <div class="micwrap">
         <button id="micBtn" class="mic" disabled aria-pressed="false">
           Mic off
@@ -160,6 +189,12 @@
       <button id="delegateDemo" class="ghost">
         Authorize an AI support assistant</button
       ><button id="runDelegate" hidden>Run authorized AI ticket demo</button
+      ><button id="delegateTransfer" class="ghost" hidden>
+        Try a transfer (outside permission)</button
+      ><button id="delegateRead" class="ghost" hidden>
+        Try reading a balance (outside permission)</button
+      ><button id="delegateReplay" class="ghost" hidden>
+        Replay the last ticket request</button
       ><button id="revokeDelegate" class="danger" hidden>
         Revoke assistant permission
       </button>
@@ -168,6 +203,41 @@
         class="security-status muted"
         role="status"
       ></div>
+      <div id="delegatePermission" class="permission-card" hidden>
+        <strong>Disclosed AI · signed requests</strong>
+        <p>
+          May create one support ticket. Expires in ten minutes. Cannot read
+          balances or move money.
+        </p>
+        <span id="delegateExpiry" class="muted"></span>
+      </div>
+      <div
+        id="delegateTranscript"
+        class="delegate-transcript"
+        role="log"
+        aria-live="polite"
+        aria-label="Assistant requests and bank decisions"
+      ></div>
+    </div>
+    <div class="card">
+      <div class="lbl">VERIFIABLE DECISIONS</div>
+      <h2>Keep the proof.</h2>
+      <p class="muted">
+        Download a masked decision record. Its signature proves what the bank
+        application recorded.
+      </p>
+      <button id="loadDecisions" class="ghost">Refresh my decisions</button>
+      <div id="decisionList" class="list" aria-live="polite"></div>
+      <button id="downloadBankKey" class="ghost">
+        Export this bank's public verification key
+      </button>
+      <a href="/static/receipt-verifier.html" target="_blank" rel="noopener"
+        >Open independent receipt verifier ↗</a
+      >
+      <p class="muted">
+        Obtain the bank key from this known app separately from the receipt.
+        Receipts do not certify audio authenticity or real payment settlement.
+      </p>
     </div>
     <div class="card">
       <div class="row between">

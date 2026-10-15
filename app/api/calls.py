@@ -172,7 +172,7 @@ async def audio_turn(
     if len(raw) > s.max_upload_bytes:
         raise HTTPException(413, "audio file too large")
     try:
-        x = await asyncio.to_thread(decode_any, raw)
+        x = await asyncio.to_thread(decode_any, raw, max_seconds=s.vad_max_utterance_s)
     except AudioError as e:
         raise HTTPException(400, str(e))
     if x.size < SR * 0.3:

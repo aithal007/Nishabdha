@@ -1,5 +1,18 @@
 # Validation record
 
+## Authority and decision implementation — 16 October 2026
+
+- Python suite: **156 passed, 4 skipped** in 35.67 seconds. Skips require optional real voice models. New coverage includes owned masked receipts, held typed turns, false-negative authorization resilience, approved amount/recipient tampering, atomic success receipts/retries, receipt-storage rollback, invalid passkey receipts, delegate scope/replay/nonce refusal, exact PCM recording, decoded-upload limits and Render identity defaults.
+- Chromium: **7 scenarios passed** in 22.8 seconds, including real browser WebAuthn signatures via a virtual authenticator, separate delegate controls, exported receipt/key files, independent signature verification without network requests, tamper refusal, revocation, desktop/mobile layout, and automated accessibility checks. An isolated Windows connection-reset callback was logged while a browser connection closed; all scenarios and browser assertions completed successfully.
+- Standalone WebCrypto checks: **8 receipt-verifier cases** and **6 existing browser-security cases** passed. The verifier rejects altered payloads, wrong issuer/key, unexpected algorithms and receipt-supplied keys; historical records remain verifiable.
+- Isolated attack harness: **17 passed, 0 failed, 0 skipped**, covering nine scenario groups. It writes JSON and HTML reports under ignored `data/`. Voice scores and scripted transcripts are fixtures; this is not DetectifAI accuracy evaluation.
+- Production TypeScript/Vite build passed. Critical Python syntax/undefined-name checks passed. No new runtime dependencies were introduced.
+- Audio memory stress: three WebSocket sessions each received **1,200 seconds of synthetic silent PCM**, accelerated, then saved recordings on disconnect. The original recording conversion exceeded the **400 MiB** test budget; direct PCM-to-WAV saving passed with **245.94 MiB** peak aggregate process working sets including venv children and cleanup. Fifteen measured seconds produced 12 typed responses, p50 **78 ms**, p95 **2,578 ms**, including initial buffer-processing backlog. These are local Windows application measurements with providers disabled, not voice/model or hosted benchmarks. Raw output: `data/audio-memory-stress.json`.
+
+The thirty-minute session rehearsal is recorded separately after completion. Live DetectifAI integration and a physical hosted passkey remain dependent on sponsor access and deployed-origin validation.
+
+## Earlier implementation validation
+
 Validated locally on 15 October 2026 using Python 3.11.9 and Node 24 on Windows. Source and compiled frontend assets are published to the project repository; this record does not assert a hosted deployment or live vendor benchmark.
 
 ## Results

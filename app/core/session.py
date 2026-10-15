@@ -29,6 +29,7 @@ from app.audio import (
     float_to_pcm16,
     pcm16_to_float,
     to_wav_bytes,
+    write_pcm16_wav,
 )
 from app.config import get_settings
 from app.core import audit
@@ -86,7 +87,7 @@ AUDITED = {
 Sender = Callable[[str, dict], Awaitable[None]]
 # Only these reach the caller's own socket. Scores, flags, decisions and tickets go to the fraud desk only -
 # telling an attacker WHY they were caught would help them tune their clone.
-CALLER_EVENTS = {"agent_say", "transcript", "call_ended", "error", "action_executed"}
+CALLER_EVENTS = {"agent_say", "transcript", "call_ended", "error", "action_executed", "authority_state"}
 
 
 def describe_action(intent: str, p: dict) -> str:
@@ -181,6 +182,7 @@ class CallSession:
         self._ticketed_flags: set[str] = set()
         self.history: list[tuple[str, str]] = []
         self._checking = False
+        self._capture_mode = "unknown"
         self._transferred_paise = 0
         self.realtime = False  # True once live audio arrives over the WebSocket (timing is only meaningful then)
         self._frames_wall: list[
@@ -426,16 +428,16 @@ class CallSession:
         for audio, a, b in chunks:
             self._enqueue_check(audio, a, b)
         self.seg.reset_utterance()
-        await self._safe_turn(Utterance(x, t_start, self.seg.now, t_start))
+        await self._safe_turn(Utterance(x, t_start, self.seg.now, t_start), capture_mode="recorded_clip")
 
     def _spawn_turn(self, u: Utterance) -> None:
         task = asyncio.create_task(self._safe_turn(u))
         self._turn_tasks.add(task)
         task.add_done_callback(self._turn_tasks.discard)
 
-    async def _safe_turn(self, u: Utterance):
+    async def _safe_turn(self, u: Utterance, capture_mode: str = "browser_stream"):
         try:
-            await self.handle_utterance(u.audio, u.t_start, u.t_end, u.speech_onset)
+            await self.handle_utterance(u.audio, u.t_start, u.t_end, u.speech_onset, capture_mode=capture_mode)
         except Exception as e:
             log.exception("turn failed")
             await self.emit(
@@ -630,6 +632,7 @@ class CallSession:
     async def handle_text(self, text: str) -> None:
         """Typed input (testing / accessibility). No audio -> no voice evidence from this turn."""
         async with self._turn_lock:
+            self._capture_mode = "typed"
             if self.ended:
                 return
             await self._turn(text, None, 0.0, 0.0, None)
@@ -653,9 +656,11 @@ class CallSession:
         task.add_done_callback(self._turn_tasks.discard)
 
     async def handle_utterance(
-        self, audio: np.ndarray, t_start: float, t_end: float, onset: float
+        self, audio: np.ndarray, t_start: float, t_end: float, onset: float,
+        capture_mode: str = "unknown",
     ) -> None:
         async with self._turn_lock:
+            self._capture_mode = capture_mode
             if self.ended:
                 return
             onset_wall = self._onset_to_wall(onset)
@@ -1015,6 +1020,12 @@ class CallSession:
         ):
             return False
         p.request_audio_hash = hashlib.sha256(float_to_pcm16(audio)).hexdigest()
+        await self.emit("authority_state", {
+            "outcome": "pending", "speaker": "pending", "authenticity": "pending",
+            "voice": "pending", "permission": "passkey_required" if p.intent == "transfer_funds" else "pending",
+            "message": "Checking the current request. No action has been authorized.",
+            "mode": "application",
+        }, persist=False)
         try:
             await asyncio.wait_for(
                 self._drain_checks(), timeout=self.s.voice_timeout_s * 2
@@ -1037,6 +1048,7 @@ class CallSession:
             "provenance": res.provenance,
             "audio_hash": p.request_audio_hash,
             "track": "caller",
+            "capture_mode": self._capture_mode,
             "utterance_id": f"{self.call_id}:{a}:{b}:{p.request_audio_hash}",
             "call_id": self.call_id,
             "action_id": p.action_id,
@@ -1086,6 +1098,7 @@ class CallSession:
                     "reasons": [reason],
                     "evidence": p.request_evidence,
                 }
+        await self._authority_decision("hold", reason)
         await self.emit(
             "action_held", {"action_id": p.action_id, "reason": reason}, to_caller=False
         )
@@ -1189,15 +1202,40 @@ class CallSession:
             if act:
                 act.decision = _jsonable(d.as_dict())
                 act.params = _jsonable(p.params)
+        signed = await self._authority_decision(d.outcome, " ".join(d.reasons))
         await self.emit(
             "decision",
             {
                 "action_id": p.action_id,
                 "intent": p.intent,
                 "tier": p.tier,
+                "decision_id": signed["payload"]["decision_id"],
                 **d.as_dict(),
             },
         )
+
+    async def _authority_decision(self, outcome: str, reason: str) -> dict:
+        from app.core.decisions import persist_decision
+
+        p = self.pending
+        signed = await persist_decision(
+            customer_id=self.customer_id, request_id=p.action_id, call_id=self.call_id,
+            operation=p.intent, actor_type="human", outcome=outcome,
+            reason=reason, evidence={"capture_mode": self._capture_mode, **p.request_evidence},
+        )
+        payload = signed["payload"]
+        # Safe summaries only. Raw scores, thresholds and flag details stay at the fraud desk.
+        await self.emit("authority_state", {
+            "decision_id": payload["decision_id"], "outcome": outcome,
+            "permission": "passkey_required" if p.intent == "transfer_funds" else outcome,
+            "voice": "checked" if self._request_evidence_valid(p) else "incomplete",
+            "speaker": "complete" if p.request_evidence.get("speaker_source") else "unavailable",
+            "authenticity": "complete" if p.request_evidence.get("spoof_source") else "unavailable",
+            "message": payload["message"], "mode": payload["mode"],
+            "capture_mode": self._capture_mode,
+        }, persist=False)
+        p._last_decision = (outcome, reason)
+        return signed
 
     async def _execute(self):
         p = self.pending
@@ -1232,6 +1270,14 @@ class CallSession:
                         call_transferred_paise=self._transferred_paise,
                     )
                     act = await db.get(ActionRequest, p.action_id)
+                    from app.core.decisions import envelope, record_decision
+
+                    record = await record_decision(
+                        db, customer_id=self.customer_id, request_id=p.action_id,
+                        call_id=self.call_id, operation=p.intent, actor_type="human",
+                        outcome="executed", evidence=p.request_evidence,
+                    )
+                    r.setdefault("data", {}).update(decision_id=record.id, decision_receipt=envelope(record))
                     act.status, act.result = "executed", _jsonable(r)
         except ActionError as e:
             if e.need:
@@ -1262,6 +1308,7 @@ class CallSession:
         p = self.pending
         if p is None:
             return
+        await self._authority_decision("failed", msg)
         async with session_scope() as db:
             act = await db.get(ActionRequest, p.action_id)
             if act:
@@ -1449,6 +1496,10 @@ class CallSession:
             act.status = "awaiting_stepup"
             sid, exp = st.id, st.expires_at
         p.stage, p.stepup_id = "stepup", sid
+        if snapshot:
+            # Now that the transaction exists, record approval-required with its
+            # stored action hash rather than a proposed, mutable interpretation.
+            await self._authority_decision("stepup", "transfer requires transaction-bound passkey approval")
         # Push ONLY to the registered app (old number). Never to a number mentioned on this call.
         await hub.publish(
             customer_topic(self.customer_id),
@@ -1568,6 +1619,9 @@ class CallSession:
         p = self.pending
         if p is None:
             return
+        reason = " ".join(d.reasons)
+        if getattr(p, "_last_decision", None) != (d.outcome, reason):
+            await self._authority_decision(d.outcome, reason)
         async with session_scope() as db:
             act = await db.get(ActionRequest, p.action_id)
             if act:
@@ -1682,11 +1736,11 @@ class CallSession:
         if self._rec:
             rec_path = str(self.s.data_dir / "clips" / f"{self.call_id}_full.wav")
             try:
-                Path(rec_path).write_bytes(
-                    to_wav_bytes(pcm16_to_float(bytes(self._rec)))
-                )
+                await asyncio.to_thread(write_pcm16_wav, rec_path, self._rec)
             except OSError:
                 rec_path = ""
+            finally:
+                self._rec.clear()
         async with session_scope() as db:
             call = await db.get(Call, self.call_id)
             if call:

@@ -94,6 +94,7 @@ async function api(path, { method = "GET", body, headers = {}, form } = {}) {
         : d?.message || JSON.stringify(d) || r.statusText,
     );
     error.status = r.status;
+    error.decisionId = r.headers.get("X-Decision-ID");
     throw error;
   }
   return data;
@@ -382,6 +383,17 @@ const Call = {
     chat.scrollTop = chat.scrollHeight;
   },
   handle(ev, d) {
+    if (ev === "authority_state") {
+      $("authorityVoice").textContent = `Speaker: ${d.speaker || d.voice} · Authenticity: ${d.authenticity || d.voice}`;
+      $("authorityPermission").textContent = d.permission === "passkey_required"
+        ? "Passkey approval of the exact transaction is required." : "Bank policy applies to this request.";
+      $("authorityOutcome").textContent = `${d.outcome}: ${d.message}`;
+      $("authorityMode").textContent = d.mode === "simulated"
+        ? "SIMULATED EVIDENCE — authorization demonstration only."
+        : `${d.capture_mode || "Unknown capture"} · voice evidence is a risk signal, not transaction permission.`;
+    }
+    if (ev === "action_executed")
+      $("authorityOutcome").textContent = "Executed: " + (d.result?.summary || d.intent);
     if (ev === "agent_say") {
       this.bubble(d.text, d.kind || "");
       Speaker.push(d);
@@ -408,6 +420,9 @@ const Call = {
     $("customer").disabled = true;
     $("dOutbound").disabled = true;
     $("chat").innerHTML = "";
+    $("authorityVoice").textContent = "Speaker: not checked · Authenticity: not checked";
+    $("authorityBank").textContent = "Not verified for this session. Open the customer app to verify.";
+    $("authorityOutcome").textContent = "Connected. No action executed.";
     try {
       const r = outbound
         ? await api("/api/bank-calls", {
@@ -478,6 +493,7 @@ const Call = {
     $("customer").disabled = false;
     $("dOutbound").disabled = false;
     this.setState("Not connected");
+    $("authorityBank").textContent = "Session ended. Verify a new bank session before relying on its identity.";
   },
 };
 $("startBtn").onclick = () => Call.start();
@@ -505,6 +521,8 @@ $("typeForm").onsubmit = async (e) => {
   e.preventDefault();
   const t = $("typeText").value.trim();
   if (!t) return;
+  $("authorityVoice").textContent = "Speaker: unavailable · Authenticity: unavailable (typed input)";
+  $("authorityMode").textContent = "Typed request — earlier voice verification cannot authorize this turn.";
   $("typeBtn").disabled = true;
   if (!Call.id && !(await Call.start(false, { mic: false }))) {
     $("typeBtn").disabled = false;
@@ -1030,6 +1048,8 @@ const Desk = {
     else if (ev === "action_refused")
       L("bad", "Refused: " + (d.reasons || []).join("; "));
     else if (ev === "action_held") L("warn", "Held: " + d.reason);
+    else if (ev === "authority_state")
+      L("warn", `Authority ${d.outcome}: ${d.message} · decision ${d.decision_id || "pending"} · ${d.mode}`);
     else if (ev === "ticket_created") L("bad", `Ticket opened (${d.severity})`);
     else if (ev === "protective_freeze")
       L("ok", "Card frozen instantly (protective)");
@@ -1135,6 +1155,15 @@ const Desk = {
         ${r.verdict.reasons.length ? `<div style="font-size:.85rem">${esc(r.verdict.reasons.join("; "))}</div>` : ""}
         <div class="muted" style="font-family:var(--mono);font-size:.72rem;overflow-wrap:anywhere">sha256 ${esc(r.integrity.sha256)}</div>
         <audio id="sAudio" controls style="width:100%"></audio>`;
+      for (const record of r.decision_receipts || []) {
+        const row = document.createElement("div"); row.className = "decision-item";
+        const label = document.createElement("span");
+        label.textContent = `${record.payload.decision_id} · ${record.payload.outcome} · ${record.payload.reason_codes.join(", ")} · ${record.payload.mode}`;
+        const button = document.createElement("button"); button.className = "ghost";
+        button.textContent = "Export masked signed decision";
+        button.onclick = () => Security.download(`${record.payload.decision_id}.json`, record);
+        row.append(label, button); box.append(row);
+      }
       try {
         const a = await fetch(`/api/calls/${this.sel}/recording`, {
           headers: staffH(),

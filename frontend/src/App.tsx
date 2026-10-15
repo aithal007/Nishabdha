@@ -51,7 +51,7 @@ const pages = {
     label: "Voice workspace",
     icon: AudioLines,
     eyebrow: "VOICE BANKING, WITH ASSURANCE",
-    title: "Every voice. Verified.",
+    title: "Your permission. Proven.",
     description:
       "A conversation that feels natural. Controls that keep you in charge.",
   },

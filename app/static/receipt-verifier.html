@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'"
+    />
+    <title>Nishabdha · Independent receipt verifier</title>
+    <link rel="stylesheet" href="/static/receipt-verifier.css" />
+    <script src="/static/receipt-verifier.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <a href="/">Nishabdha</a>
+      <p class="eyebrow">VERIFY THE RECORD</p>
+      <h1>Check the proof yourself.</h1>
+      <p>
+        This verifier uses browser cryptography. Files stay in this browser;
+        verification makes no network requests.
+      </p>
+      <form id="receiptForm">
+        <label for="expectedIssuer">Bank origin you independently trust</label>
+        <input
+          id="expectedIssuer"
+          type="url"
+          placeholder="https://your-bank.example"
+          required
+        />
+        <label for="trustedKeyFile">Trusted bank public key file</label>
+        <input
+          id="trustedKeyFile"
+          type="file"
+          accept="application/json,.json"
+          required
+        />
+        <p class="hint">
+          Obtain this key separately from the known bank app. A key supplied
+          alongside an untrusted receipt does not establish bank identity.
+        </p>
+        <label for="receiptFile">Signed decision receipt</label>
+        <input
+          id="receiptFile"
+          type="file"
+          accept="application/json,.json"
+          required
+        />
+        <button type="submit">Verify signature and record</button>
+      </form>
+      <p id="verifyStatus" role="status" aria-live="polite">
+        Select a trusted key and a receipt to begin.
+      </p>
+      <pre id="verifiedPayload" hidden></pre>
+      <p class="hint">
+        A valid signature proves that the configured bank key signed this
+        historical record. It does not prove perfect deepfake detection,
+        customer understanding, current permission, or real payment settlement.
+        Historical receipts remain verifiable after a grant expires;
+        bank-session proofs have their own expiry checks.
+      </p>
+    </main>
+  </body>
+</html>

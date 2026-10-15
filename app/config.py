@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -174,9 +176,60 @@ class Settings(BaseSettings):
         )
 
 
+def apply_render_memory_safety(
+    settings: Settings, environ: dict[str, str] | None = None
+) -> bool:
+    """Disable local ML fallbacks on small Render instances unless explicitly enabled."""
+    env = os.environ if environ is None else environ
+    hosted = (
+        env.get("RENDER", "").lower() == "true"
+        or bool(env.get("RENDER_SERVICE_ID"))
+        or bool(env.get("RENDER_EXTERNAL_HOSTNAME"))
+    )
+    if not hosted or env.get("NISHABHA_ALLOW_LOCAL_MODELS", "").lower() == "true":
+        return False
+
+    settings.app_env = "demo"
+    if settings.voice_primary == "local":
+        settings.voice_primary = "detectifai"
+    if settings.voice_fallback == "local":
+        settings.voice_fallback = "mock"
+
+    groq_configured = bool(settings.groq_api_key.strip())
+    if settings.stt_provider == "local":
+        settings.stt_provider = "groq" if groq_configured else "none"
+    if settings.stt_fallback == "local":
+        settings.stt_fallback = "none"
+    if settings.stt_provider == "groq" and not groq_configured:
+        settings.stt_provider = "none"
+    if settings.llm_provider == "groq" and not groq_configured:
+        settings.llm_provider = "none"
+    return True
+
+
+def apply_render_identity(
+    settings: Settings, environ: dict[str, str] | None = None
+) -> None:
+    """Use Render's server-owned hostname for untouched localhost defaults, never request headers."""
+    env = os.environ if environ is None else environ
+    hostname = env.get("RENDER_EXTERNAL_HOSTNAME", "").strip().lower()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*\.onrender\.com", hostname):
+        return
+    if not env.get("BANK_ORIGIN") and settings.bank_origin == "http://localhost:8000":
+        settings.bank_origin = f"https://{hostname}"
+    if (
+        not env.get("WEBAUTHN_RP_ID")
+        and settings.webauthn_rp_id == "localhost"
+        and settings.bank_origin == f"https://{hostname}"
+    ):
+        settings.webauthn_rp_id = hostname
+
+
 @lru_cache
 def get_settings() -> Settings:
     s = Settings()
+    apply_render_identity(s)
+    apply_render_memory_safety(s)
     s.data_dir.mkdir(parents=True, exist_ok=True)
     (s.data_dir / "clips").mkdir(exist_ok=True)
     (s.data_dir / "enroll").mkdir(exist_ok=True)

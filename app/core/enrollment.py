@@ -53,7 +53,7 @@ async def enroll_customer(customer_id: str, raw_samples: list[bytes], actor: str
     clips, report = [], []
     for i, raw in enumerate(raw_samples):
         try:
-            x = await asyncio.to_thread(decode_any, raw)
+            x = await asyncio.to_thread(decode_any, raw, max_seconds=s.vad_max_utterance_s)
         except Exception as e:
             raise EnrollmentError(f"sample {i + 1}: cannot decode audio ({e})")
         q = assess(x, s.enroll_min_seconds, s.enroll_min_rms_dbfs)

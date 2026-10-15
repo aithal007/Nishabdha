@@ -163,7 +163,7 @@ async def freeze_transfer(
         return snapshot
 
 
-async def execute_transfer(action_id: str, customer_id: str, call_id: str) -> dict:
+async def _execute_transfer(action_id: str, customer_id: str, call_id: str) -> dict:
     from app.core.agent_identity import sign_record
 
     async with SessionLocal() as db:
@@ -305,6 +305,46 @@ async def execute_transfer(action_id: str, customer_id: str, call_id: str) -> di
             "at": utcnow().isoformat(),
         }
         frozen.receipt = {"payload": payload, "signature": sign_record(payload)}
+        from app.core.decisions import envelope, record_decision
+
+        record = await record_decision(
+            db,
+            customer_id=customer_id,
+            request_id=action_id,
+            call_id=call_id,
+            operation="transfer_funds",
+            actor_type="human",
+            outcome="executed",
+            action_hash=frozen.action_hash,
+            evidence=frozen.evidence,
+        )
+        result["data"].update(decision_id=record.id, decision_receipt=envelope(record))
         act.status, act.result = "executed", result
         await db.commit()
         return result
+
+
+async def execute_transfer(action_id: str, customer_id: str, call_id: str) -> dict:
+    try:
+        return await _execute_transfer(action_id, customer_id, call_id)
+    except ActionError as exc:
+        from app.core.decisions import record_decision
+
+        async with SessionLocal() as db:
+            act = await db.get(ActionRequest, action_id)
+            frozen = await db.get(FrozenTransfer, action_id)
+            if act and act.customer_id == customer_id and act.call_id == call_id:
+                await record_decision(
+                    db,
+                    customer_id=customer_id,
+                    request_id=action_id,
+                    call_id=call_id,
+                    operation="transfer_funds",
+                    actor_type="human",
+                    outcome="denied",
+                    reason=str(exc),
+                    action_hash=frozen.action_hash if frozen else None,
+                    evidence=frozen.evidence if frozen else {},
+                )
+                await db.commit()
+        raise

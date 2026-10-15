@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 
 test("navigation, customer data and live typed call retain their contracts", async ({
   page,
@@ -11,7 +12,7 @@ test("navigation, customer data and live typed call retain their contracts", asy
     page.getByRole("button", { name: "Voice workspace" }),
   ).toBeEnabled();
   await expect(
-    page.getByRole("heading", { name: "Every voice. Verified." }),
+    page.getByRole("heading", { name: "Your permission. Proven." }),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/voice-desktop.png",
@@ -125,12 +126,71 @@ test("real browser WebAuthn registration and one-use delegate demo", async ({
     "Assistant authorized",
     { timeout: 15000 },
   );
+  await expect(page.locator("#delegatePermission")).toContainText(
+    "Cannot read balances or move money",
+  );
+  await page.locator("#delegateTransfer").click();
+  await expect(page.locator("#delegateTranscript")).toContainText(
+    "Refused: action outside delegated scope",
+  );
+  await page.locator("#delegateRead").click();
+  await expect(page.locator("#delegateTranscript")).toContainText(
+    "Please read my customer's balance",
+  );
   await page.locator("#runDelegate").click();
   await expect(page.locator("#securityStatus")).toContainText(
     "receipt verified",
     { timeout: 15000 },
   );
-  await expect(page.locator("#securityStatus")).toContainText("Replay blocked");
+  await page.locator("#delegateReplay").click();
+  await expect(page.locator("#delegateTranscript")).toContainText(
+    "Replay refused",
+  );
+  const [receiptDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator("#decisionList button").first().click(),
+  ]);
+  const receiptPath = await receiptDownload.path();
+  const [keyDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator("#downloadBankKey").click(),
+  ]);
+  const keyPath = await keyDownload.path();
+  const verifier = await context.newPage();
+  await verifier.goto("/static/receipt-verifier.html");
+  await verifier.locator("#expectedIssuer").fill("http://localhost:8010");
+  await verifier.locator("#trustedKeyFile").setInputFiles(keyPath!);
+  await verifier.locator("#receiptFile").setInputFiles(receiptPath!);
+  const network: string[] = [];
+  verifier.on("request", (request) => network.push(request.url()));
+  await verifier
+    .getByRole("button", { name: "Verify signature and record" })
+    .click();
+  await expect(verifier.locator("#verifyStatus")).toContainText(
+    "Signature verified",
+  );
+  expect(network).toEqual([]);
+  const tampered = JSON.parse(await readFile(receiptPath!, "utf8"));
+  tampered.payload.outcome = "executed_by_attacker";
+  await verifier.locator("#receiptFile").setInputFiles({
+    name: "tampered.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(tampered)),
+  });
+  await verifier
+    .getByRole("button", { name: "Verify signature and record" })
+    .click();
+  await expect(verifier.locator("#verifyStatus")).toContainText(
+    "Verification failed",
+  );
+  await verifier.close();
+  await page.locator("#delegateDemo").click();
+  await expect(page.locator("#runDelegate")).toBeVisible();
+  await page.locator("#revokeDelegate").click();
+  await expect(page.locator("#securityStatus")).toContainText(
+    "permission revoked",
+  );
+  await expect(page.locator("#runDelegate")).toBeHidden();
   expect(
     await page.evaluate(() => localStorage.getItem("staffKey")),
   ).toBeNull();

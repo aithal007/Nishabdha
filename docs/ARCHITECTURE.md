@@ -158,6 +158,20 @@ Authentication headers and routes are described in [`API.md`](API.md). The main 
 
 ## Failure behavior
 
+### Decision records and visible authority
+
+The voice workspace displays caller check completion, signed bank identity, required permission and action outcome separately. Safe `authority_state` events carry deterministic explanations without disclosing scores or thresholds to the caller. Capture transport distinguishes typed turns, recorded uploads and browser streams; this is not a microphone-origin attestation. Bank identity expires with its signed proof and resets when the call ends or customer changes.
+
+Migration v3 adds `decision_records` without changing historical banking records or approvals. `app/core/decisions.py` signs privacy-minimized `nishabdha.decision.v1` records. Held/refused requests, owned failed passkey assertions and executed operations retain durable identifiers. Executed transfer and delegate records are committed with their mutations; a failed receipt write rolls back the mutation. Idempotent transfer retries return the original decision identifier. Requests that fail delegate authentication are recorded as claims, without asserting verified agent identity.
+
+Customer decision exports are ownership-checked; staff can read the recent decision stream and per-call report receipts. Exports omit names, full account numbers, tokens, raw recordings and numeric scores. A standalone browser verifier requires the expected issuer and a bank key obtained separately from the trusted app. It rejects signature or displayed-payload tampering and makes no verification network requests. Historical receipt verification does not reactivate expired grants or attest to real settlement.
+
+The assistant UI has separate controls for scoped ticket creation, transfer/balance refusal, replay and revocation, plus visible request/response turns. Its speech disclosure is presentation; request signatures and the stored grant establish authority. The isolated CLI attack harness uses test fixtures only and produces a clearly marked report. See [demo instructions](DEMO.md) for the presentation and memory rehearsal.
+
+Uploaded caller/enrollment utterances are bounded at decoding to the configured utterance limit, including compressed input. Whole-call recordings remain bounded to twenty minutes and write existing PCM directly to WAV in a background thread, then release their buffer. This avoids multiple whole-call float/byte copies during disconnect.
+
+### Outcome handling
+
 | Condition | Expected behavior |
 |---|---|
 | Required DetectifAI result missing, stale, timed out, or degraded | Hold voice transfer; expose evidence status and reason to staff |

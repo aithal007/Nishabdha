@@ -35,6 +35,10 @@ The support-assistant demo authorizes one disclosed AI key to create one support
 
 ## Security behavior
 
+The workspace now shows caller evidence, bank identity, required permission and outcome separately. The customer app has individual delegate ticket/transfer/balance/replay/revocation controls, a visible interaction log, and owned signed decision downloads. The independent receipt verifier requires a bank key obtained separately from the trusted app and verifies locally in the browser. Held/refused requests receive durable records as well as successful actions.
+
+See [the four-minute demonstration](docs/DEMO.md) for the presentation, isolated attack harness, memory rehearsal and sponsor integration checklist. [Decision API contracts](docs/API.md#versioned-decision-receipts) describe the additive schema and ownership boundaries.
+
 - The LLM proposes actions. Deterministic server policy and a transaction gateway enforce permission.
 - Each protected voice request uses its own utterance evidence. Historical successful chunks cannot replace timed-out checks. Typed protected requests require app approval.
 - Missing evidence differs from a detected attack. Synthetic and speaker-swap flags lock voice actions and create review tickets.

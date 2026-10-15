@@ -58,7 +58,7 @@ async def session_scope() -> AsyncIterator[AsyncSession]:
 
 async def init_db() -> None:
     from app import models  # noqa: F401  (register tables)
-    from app.core import agent_models, security_models  # noqa: F401
+    from app.core import agent_models, decisions, security_models  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -84,3 +84,5 @@ async def init_db() -> None:
                 .values(status="cancelled")
             )
             db.add(SecurityMigration(version=2))
+        if await db.get(SecurityMigration, 3) is None:
+            db.add(SecurityMigration(version=3))

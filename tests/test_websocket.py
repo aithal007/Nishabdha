@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import time
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from app.audio import float_to_pcm16
@@ -14,6 +16,19 @@ from app.main import app
 from app.providers.voice_engine import get_voice_engine
 
 from .conftest import STAFF, ScriptedSTT, audio, wav
+
+
+@pytest.fixture(autouse=True)
+def reset_websocket_voice_fixture():
+    # TestClient tests do not use the async `client` fixture; don't inherit the
+    # preceding test's simulated clone scores when enrolling a genuine caller.
+    engine = get_voice_engine()
+    engine.mock.force_speaker = engine.mock.force_spoof = None
+    engine.mock.speaker_queue.clear()
+    engine.mock.spoof_queue.clear()
+    engine._ref_cache.clear()
+    for breaker in engine.breakers.values():
+        breaker.ok()
 
 
 def _recv_until(ws, pred, limit=60):

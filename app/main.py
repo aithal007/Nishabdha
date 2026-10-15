@@ -12,8 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import agents, calls, copilot, customer_app, knowledge, passkeys, staff, ws
-from app.config import get_settings
+from app.api import agents, calls, copilot, customer_app, decisions, knowledge, passkeys, staff, ws
+from app.config import apply_render_memory_safety, get_settings
 from app.core.session import SESSIONS
 from app.db import engine, init_db
 from app.knowledge.seed_data import seed_knowledge_base
@@ -27,6 +27,10 @@ logging.basicConfig(
     level=s.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
 )
 log = logging.getLogger("unclone")
+if apply_render_memory_safety(s):
+    log.warning(
+        "Render memory-safe profile active: local model fallbacks are disabled"
+    )
 
 
 @asynccontextmanager
@@ -98,6 +102,7 @@ app.include_router(ws.router)
 app.include_router(passkeys.router)
 app.include_router(agents.router)
 app.include_router(copilot.router)
+app.include_router(decisions.router)
 
 
 @app.get("/health", tags=["system"])

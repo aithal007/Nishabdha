@@ -1844,3 +1844,70 @@ main#workspace {
     scroll-behavior: auto !important;
   }
 }
+.authority-card h2 {
+  font-size: 20px;
+  line-height: 1.35;
+}
+.authority-grid {
+  margin: 0;
+  display: grid;
+  gap: 15px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.call-grid > .authority-card {
+  grid-column: 1 / -1;
+}
+.conversation-card {
+  align-self: start;
+}
+@media (max-width: 1000px) {
+  .authority-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .authority-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.authority-grid div {
+  border-top: 1px solid #dce8e4;
+  padding-top: 12px;
+}
+.authority-grid dt {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #47665b;
+  letter-spacing: 0.05em;
+}
+.authority-grid dd {
+  margin: 4px 0 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.permission-card {
+  background: #eef7f2;
+  border: 1px solid #c9dfd4;
+  border-radius: 14px;
+  padding: 16px;
+}
+.delegate-transcript {
+  max-height: 320px;
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+}
+.delegate-turn {
+  padding: 12px;
+  background: #f3f7f9;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.decision-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid #dce8e4;
+  overflow-wrap: anywhere;
+}

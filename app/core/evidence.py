@@ -316,6 +316,12 @@ async def build_report(call_id: str) -> dict | None:
             )
         ).scalars()
         body["transaction_receipts"] = [r.receipt for r in receipts if r.receipt]
+        from app.core.decisions import DecisionRecord, envelope as decision_envelope
+
+        rows = (await db.execute(select(DecisionRecord).where(
+            DecisionRecord.call_id == call_id
+        ).order_by(DecisionRecord.created_at).limit(200))).scalars()
+        body["decision_receipts"] = [decision_envelope(row) for row in rows]
     body["assurance_limits"] = (
         "Signatures attest to this service's records, not perfect detection. Retain a signed checkpoint separately to detect audit-tail truncation."
     )

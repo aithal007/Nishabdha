@@ -6,7 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import passkeys
-from app.core.security_models import FrozenTransfer
+from app.core.security_models import FrozenTransfer, PasskeyApproval
 from app.core.transactions import digest
 from app.db import get_db
 from app.models import ActionRequest, Customer, StepUp, utcnow
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api", tags=["passkeys"])
 
 
 class VerifyBody(BaseModel):
-    approval_id: str
+    approval_id: str = Field(max_length=64)
     credential: dict
 
 
@@ -71,11 +71,10 @@ async def options(
     )
 
 
-@router.post("/app/passkeys/verify")
-async def verify(
+async def _verify(
     body: VerifyBody,
-    c: Customer = Depends(require_app_customer),
-    db: AsyncSession = Depends(get_db),
+    c: Customer,
+    db: AsyncSession,
 ):
     approval = await passkeys.verify(db, c.id, body.approval_id, body.credential)
     action_id = approval.action_id
@@ -144,3 +143,41 @@ async def verify(
         "status": "approved",
         "purpose": approval.purpose,
     }
+
+
+@router.post("/app/passkeys/verify")
+async def verify(
+    body: VerifyBody,
+    c: Customer = Depends(require_app_customer),
+    db: AsyncSession = Depends(get_db),
+):
+    customer_id = c.id
+    try:
+        return await _verify(body, c, db)
+    except HTTPException as exc:
+        from app.core.decisions import record_decision
+
+        await db.rollback()
+        approval = await db.get(PasskeyApproval, body.approval_id)
+        if approval and approval.customer_id == customer_id:
+            frozen = (
+                await db.get(FrozenTransfer, approval.action_id)
+                if approval.action_id
+                else None
+            )
+            record = await record_decision(
+                db,
+                customer_id=customer_id,
+                request_id=approval.action_id or approval.id,
+                call_id=frozen.call_id if frozen else None,
+                operation="transfer_funds"
+                if approval.purpose == "transfer"
+                else "passkey_" + approval.purpose,
+                actor_type="customer_app",
+                outcome="denied",
+                reason=str(exc.detail),
+                action_hash=approval.binding_hash,
+            )
+            await db.commit()
+            exc.headers = {**(exc.headers or {}), "X-Decision-ID": record.id}
+        raise
