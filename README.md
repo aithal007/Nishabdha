@@ -56,3 +56,7 @@ python -m pytest -q
 The suite uses explicit test voice mocks, real audio fixtures, and a virtual WebAuthn authenticator generating real signatures. It validates application authorization, not model detection accuracy. Optional real-model tests need their separate dependencies.
 
 The additive security migration preserves historical customers, accounts, enrollments and transactions and invalidates pending approvals from the old policy. Back up the SQLite database and signing key together. See `docs/SECURITY.md` for API changes, deployment limits and the evaluation protocol.
+
+## Architecture and API
+
+Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the complete component map, voice evidence flow, immutable transfer and passkey flow, signed bank identity, bounded AI delegate, knowledge review, failure behavior, and demo sequence. See [`docs/API.md`](docs/API.md) for frontend routes and message contracts, and [`docs/VALIDATION.md`](docs/VALIDATION.md) for checks that were actually run and remaining live-provider validation.
