@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: unclone-voice-guard
+    name: nishabdha-preview
     runtime: docker
     dockerfilePath: Dockerfile
     plan: free
@@ -12,13 +12,13 @@ services:
       - key: VOICE_PRIMARY
         value: detectifai
       - key: VOICE_FALLBACK
-        value: local
+        value: mock
       - key: STT_PROVIDER
-        value: groq
+        value: none
+      - key: STT_FALLBACK
+        value: none
       - key: LLM_PROVIDER
-        value: groq
-      - key: GROQ_API_KEY
-        sync: false
+        value: none
       - key: STAFF_API_KEY
         generateValue: true
       - key: AUDIT_HMAC_SECRET

@@ -4,7 +4,7 @@ Nishabdha is a hackathon prototype with simulated banking only. It has no real p
 
 ## Render preview
 
-The repository includes `render.yaml` for a one-process Docker web service. The free Render plan is suitable only for a temporary, non-production preview:
+The repository includes `render.yaml` for a one-process Docker web service. It is configured as a UI/demo preview: speech recognition and the LLM are disabled, and the UI uses the explicitly disclosed demo voice mock when DetectifAI is not configured. Mock evidence cannot authorize a transfer. The free Render plan is suitable only for a temporary, non-production preview:
 
 - It sleeps after inactivity and can take about a minute to wake.
 - Its filesystem is ephemeral. Demo accounts, passkey registrations, approvals, receipts, uploaded audio, and the bank signing key can be reset when the service sleeps, restarts, or redeploys.
@@ -21,10 +21,10 @@ Set these before enrolling or using passkeys. They must match the browser's HTTP
 
 ## Provider configuration
 
-The voice UI can load without vendor credentials, but a live voice authorization demo cannot. Configure provider secrets in the hosting dashboard, never in Git:
+The preview can load without vendor credentials, but it will not run live speech recognition, LLM responses, or sponsor verification. For a live voice demo, configure provider settings in Render's dashboard, never in Git:
 
 - `DETECTIFAI_API_KEY` and `DETECTIFAI_BASE_URL`, plus the endpoint/field settings from the sponsor's actual API contract. The current adapter defaults are examples and must be checked against that contract.
-- `GROQ_API_KEY` for Groq speech-to-text and language features selected in `render.yaml`.
+- `GROQ_API_KEY` if enabling Groq speech-to-text and language features; change `STT_PROVIDER` and `LLM_PROVIDER` from `none` only after adding the key.
 - Keep the generated `STAFF_API_KEY` and `AUDIT_HMAC_SECRET`; retrieve the staff key from the host's secret settings and share it only with the demo operator.
 
 Without DetectifAI, voice verification is unavailable or degraded and voice-initiated transfers must remain held. Do not present mock/local checks as sponsor verification. A successful UI health check alone does not prove provider integration.
