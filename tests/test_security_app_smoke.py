@@ -7,14 +7,11 @@ import pytest
 async def test_security_assets_and_contract(client):
     page = await client.get("/")
     assert page.status_code == 200
-    assert 'src="/static/security.js"' in page.text
-    for control in (
-        "provisionPasskey",
-        "delegateDemo",
-        "runDelegate",
-        "revokeDelegate",
-    ):
-        assert f'id="{control}"' in page.text
+    assert 'id="root"' in page.text
+    assert '/static/ui/assets/' in page.text
+    workspace = await client.get("/static/workspace.js")
+    assert workspace.status_code == 200
+    assert "Security.approve" in workspace.text
     script = await client.get("/static/security.js")
     assert script.status_code == 200
     assert "navigator.credentials.get" in script.text

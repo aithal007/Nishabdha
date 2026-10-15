@@ -43,7 +43,7 @@ flowchart TD
 
 ## Runtime and modules
 
-The application is a single Python/FastAPI process. SQLAlchemy provides async database access; SQLite is the demo database. WebSockets carry browser voice sessions, customer-app notifications, and fraud-desk events. Static HTML and JavaScript provide the caller, customer app, and staff dashboard. Provider adapters isolate speech recognition, language model, text-to-speech, and voice-verification integrations.
+The application is a single Python/FastAPI process. SQLAlchemy provides async database access; SQLite is the demo database. WebSockets carry browser voice sessions, customer-app notifications, and fraud-desk events. A React/Vite frontend provides navigation, accessible dialogs, and a CopilotKit policy assistant; the existing workspace controller retains the audio and banking browser flows. FastAPI serves the compiled UI, so deployment needs no additional Node process. Provider adapters isolate speech recognition, language model, text-to-speech, and voice-verification integrations.
 
 | Area | Main implementation | Responsibility |
 |---|---|---|
@@ -56,7 +56,8 @@ The application is a single Python/FastAPI process. SQLAlchemy provides async da
 | Agent identity and delegation | `app/core/agent_identity.py`, `app/core/agent_models.py`, `app/api/agents.py` | Bank signing key/JWKS, signed bank-session claims, and bounded AI delegate grants |
 | Evidence and audit | `app/core/evidence.py`, `app/core/audit.py` | Fraud-desk reports, hash-chained audit events, and signed receipts |
 | Knowledge | `app/knowledge/`, `app/api/knowledge.py` | Reviewed demo policies, extractive answers, staff research, and quarantined sources |
-| Browser interface | `app/static/index.html`, `app/static/security.js` | Caller UI, customer approval, bank-proof verification, delegate demo, and fraud desk |
+| Browser interface | `frontend/src/`, `app/static/workspace.js`, `app/static/security.js` | React shell, caller UI, customer approval, bank-proof verification, delegate demo, and fraud desk |
+| Policy assistant | `frontend/src/PolicyAssistant.tsx`, `app/api/copilot.py` | Headless CopilotKit/AG-UI SSE integration with reviewed extractive policy answers and no banking tools |
 
 The demo expects one application worker because active voice sessions are held in process memory. SQLite should live on persistent storage. The bank signing key is stored under `DATA_DIR` next to application data; persist and back it up with the database so signatures remain verifiable after restart.
 
@@ -129,6 +130,8 @@ The grant does not permit transfer, balance reads, or account changes. The deleg
 ## Knowledge and research flow
 
 Knowledge retrieval supports explanations and FAQs; it is not an authorization source. The current index uses hashed lexical features rather than a learned semantic embedding. The demo answers use reviewed, extractive source text and abstain when suitable evidence is unavailable. The spoken response is derived from the same accepted content.
+
+The read-only CopilotKit sidebar uses the same lookup through an AG-UI event stream at `POST /api/copilot/policy`. It does not receive staff keys, customer tokens, account state, or live-call transcripts, and it ignores client tool definitions and system instructions. Details of the frontend transition and build are in [`FRONTEND.md`](FRONTEND.md).
 
 Live caller turns do not launch web research. Staff-only research and scraping require an approved HTTPS host, reject private-address destinations, disable redirects, and stage fetched content in quarantine with a content hash. Staff inspect the exact content and approve the matching hash before it enters the reviewed retrieval set. A source URL alone is not treated as proof that its content is authoritative.
 

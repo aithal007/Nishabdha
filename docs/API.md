@@ -1,5 +1,7 @@
 # Frontend contract
 
+The current React UI is served at `/`; build and source ownership are documented in [FRONTEND.md](FRONTEND.md). Transfer passkey and agent-proof routes are in [SECURITY.md](SECURITY.md). `POST /api/copilot/policy` accepts AG-UI `threadId`, `runId`, and bounded `messages`, then returns SSE run/message events containing reviewed policy excerpts. It provides no banking tools or account context.
+
 Base URL: `http://<laptop-ip>:8000`. Interactive docs: `/docs`.
 
 ## Auth headers
@@ -30,8 +32,7 @@ Then connect to `ws://host:8000{ws_url}`.
   - At another rate, send `{"type":"config","sample_rate":48000}` first. The server resamples without clicks.
   - Use `getUserMedia({audio:{echoCancellation:true, noiseSuppression:true}})` + AudioWorklet.
 - `{"type":"playback","id":"m3","state":"ended"}`: send this when an agent clip finishes playing.
-  - It makes liveness timing more accurate.
-  - Even if the client never sends it, the server still estimates the timing.
+  - This is playback telemetry; it cannot reset server challenge timestamps or establish caller liveness.
 - `{"type":"end_utterance"}`: optional push-to-talk release. Server VAD also ends turns after 0.7 s of silence.
 - `{"type":"text","text":"..."}`: typed turn. It never unlocks sensitive actions by itself.
 - `{"type":"hangup"}`, `{"type":"ping"}`
@@ -71,7 +72,7 @@ End the call with `POST /api/calls/{id}/end`.
 - `GET /api/app/me`: profile, balances, cards
 - `GET /api/app/pending`: open approvals + current bank call (polling fallback)
 - `POST /api/app/stepups/{id}/approve` and `/deny` (deny = critical fraud ticket)
-- `GET /api/app/bank-call`: `{"genuine_bank_call": false, ...}` means whoever claims to be the bank is fake
+- `GET /api/app/bank-call`: `{"genuine_bank_call": false, ...}` means this application has no matching authorized outbound session. It does not identify the origin of arbitrary telephone audio.
 - `POST /api/app/bank-call/{notice_id}/confirm` and `/report`
 - `POST /api/app/cards/{last4}/freeze`: in-app kill switch
 

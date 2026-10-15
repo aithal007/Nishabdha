@@ -1,0 +1,455 @@
+<!-- ======================= CALL ======================= -->
+<section
+  id="tab-call"
+  class="grid call-grid"
+  aria-label="Voice banking workspace"
+>
+  <div class="card conversation-card">
+    <div class="row between panel-heading">
+      <div class="row">
+        <span class="panel-icon">N</span>
+        <div>
+          <h2>Your banking conversation</h2>
+          <div class="muted">Nishabdha AI &middot; Voice & text</div>
+        </div>
+      </div>
+      <span id="callState" class="pill grey">Not connected</span>
+    </div>
+    <div
+      id="chat"
+      class="chat"
+      role="log"
+      aria-live="polite"
+      aria-label="Banking conversation"
+    >
+      <div class="conversation-empty empty">
+        <div class="sound-glyph" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <h3>A familiar voice.<br />A safer conversation.</h3>
+        <p>
+          Ask about your account or request a banking action.<br />You stay in
+          control of every transfer.
+        </p>
+        <div class="suggestion-row">
+          <span>&ldquo;What's my balance?&rdquo;</span
+          ><span>&ldquo;Block my debit card&rdquo;</span>
+        </div>
+      </div>
+    </div>
+    <form id="typeForm" class="row composer" autocomplete="off">
+      <input
+        id="typeText"
+        aria-label="Message to bank agent"
+        placeholder="Or type a message to your bank agent..."
+        disabled
+      /><button id="typeBtn" disabled aria-label="Send message">
+        Send &#8599;
+      </button>
+    </form>
+    <div class="conversation-footnote">
+      <span class="small-dot"></span> Transfers always require your passkey
+      approval.
+    </div>
+  </div>
+  <div class="session-column">
+    <div class="card voice-card">
+      <div class="row between">
+        <span class="lbl">VOICE SESSION</span
+        ><span class="session-tag">BROWSER AUDIO</span>
+      </div>
+      <div class="voice-orbit" aria-hidden="true">
+        <div class="orbit-ring"></div>
+        <div class="orbit-ring inner"></div>
+        <div class="voice-core">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+      <h2>Let's talk securely.</h2>
+      <p class="muted">
+        Your voice starts the conversation.<br />Your passkey approves the
+        action.
+      </p>
+      <label class="voice-language" for="lang"
+        >Conversation language<select id="lang">
+          <option value="en">English</option>
+          <option value="hi">हिन्दी</option>
+          <option value="kn">ಕನ್ನಡ</option>
+        </select></label
+      >
+      <div class="row call-actions">
+        <button id="startBtn">Start a secure call &#8599;</button
+        ><button id="endBtn" class="danger" disabled>End call</button>
+      </div>
+      <div class="micwrap">
+        <button id="micBtn" class="mic" disabled aria-pressed="false">
+          Mic off
+        </button>
+        <div class="meter" aria-hidden="true"><b id="meter"></b></div>
+        <div id="micHint" class="muted">
+          Microphone pauses while the agent speaks. Tap to interrupt.
+        </div>
+        <button id="doneBtn" class="ghost" disabled>
+          Finish this utterance
+        </button>
+      </div>
+    </div>
+    <details class="card audio-upload">
+      <summary>Test with a recorded clip <span>+</span></summary>
+      <p class="muted">
+        Use consented genuine or synthetic audio. The clip is submitted as a new
+        caller utterance.
+      </p>
+      <label for="clipFile" class="lbl">Audio file</label
+      ><input id="clipFile" type="file" accept="audio/*" /><button
+        id="clipBtn"
+        class="ghost"
+        disabled
+      >
+        Send audio clip
+      </button>
+    </details>
+  </div>
+</section>
+
+<!-- ======================= PHONE APP ======================= -->
+<section
+  id="tab-phone"
+  class="grid customer-grid"
+  hidden
+  aria-label="Customer approval app"
+>
+  <div class="card customer-account">
+    <div class="row between">
+      <div>
+        <div class="lbl">YOUR TRUSTED BANK APP</div>
+        <h2 id="pName">Loading customer...</h2>
+      </div>
+      <span id="pConn" class="pill grey">offline</span>
+    </div>
+    <div id="pBalance" class="account-balance">
+      <div class="empty">Open the customer app to load balances.</div>
+    </div>
+    <div class="row between">
+      <h2>Approvals & activity</h2>
+      <span class="pill grey">Exact action only</span>
+    </div>
+    <div id="pNotifs" class="list">
+      <div class="empty approval-empty">
+        You're in control.<br />New requests and security alerts will appear
+        here.
+      </div>
+    </div>
+  </div>
+  <div class="customer-tools">
+    <div class="card">
+      <div class="lbl">BANK & AGENT IDENTITY</div>
+      <h2>Trust goes both ways.</h2>
+      <p class="muted">
+        Verify the signed bank session or give an assistant a single, limited
+        permission.
+      </p>
+      <button id="pCheckBank" class="ghost">Verify bank session &#8599;</button
+      ><button id="provisionPasskey" class="ghost">
+        Set up passkey with bank staff
+      </button>
+      <div class="divider"></div>
+      <div class="row between">
+        <h3>Support assistant</h3>
+        <span class="pill grey">1 ticket &middot; 10 min</span>
+      </div>
+      <button id="delegateDemo" class="ghost">
+        Authorize an AI support assistant</button
+      ><button id="runDelegate" hidden>Run authorized AI ticket demo</button
+      ><button id="revokeDelegate" class="danger" hidden>
+        Revoke assistant permission
+      </button>
+      <div
+        id="securityStatus"
+        class="security-status muted"
+        role="status"
+      ></div>
+    </div>
+    <div class="card">
+      <div class="row between">
+        <h2>Voice enrollment</h2>
+        <span class="pill grey">With your consent</span>
+      </div>
+      <p class="muted">
+        Read each phrase for 3-4 seconds. These samples help compare your voice
+        during later calls.
+      </p>
+      <ol id="phrases" class="phrases"></ol>
+      <div class="row">
+        <button id="recBtn">Record sentence 1</button
+        ><button id="enrollBtn" class="ghost" disabled>Save my voice</button
+        ><button id="recReset" class="ghost">Start over</button>
+      </div>
+      <div id="enrollMsg" class="muted" role="status"></div>
+    </div>
+    <div class="card">
+      <h2>Your cards</h2>
+      <div id="pCards" class="list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= FRAUD DESK ======================= -->
+<section
+  id="tab-desk"
+  class="grid3"
+  hidden
+  aria-label="Fraud investigation desk"
+>
+  <div class="card">
+    <div class="row between">
+      <h2>Session inbox</h2>
+      <span id="dConn" class="pill grey">offline</span>
+    </div>
+    <div id="dCalls" class="list">
+      <div class="empty">Live and recent calls appear here.</div>
+    </div>
+    <div class="row between">
+      <h2>Review queue</h2>
+      <button id="dRefresh" class="ghost">Refresh</button>
+    </div>
+    <div id="dTickets" class="list"><div class="empty">No tickets.</div></div>
+    <div class="row">
+      <button id="dAudit" class="ghost">Verify audit log</button
+      ><button id="dReset" class="danger">Reset demo bank</button>
+    </div>
+    <details class="outbound-control">
+      <summary>Open an outbound bank session</summary>
+      <p class="muted">
+        Staff authorization required. Create a browser demo session for the
+        selected customer, then verify its signed proof in the customer app.
+      </p>
+      <label class="lbl" for="outboundReason">Call reason</label>
+      <input
+        id="outboundReason"
+        maxlength="200"
+        value="Account security check"
+      />
+      <button id="dOutbound" class="ghost">Start outbound demo call</button>
+    </details>
+  </div>
+  <div class="card">
+    <div class="row between">
+      <div>
+        <div class="lbl">Selected call</div>
+        <h2 id="sTitle">None</h2>
+      </div>
+      <span id="sRisk" class="pill grey">unknown</span>
+    </div>
+    <div class="row between">
+      <div>
+        <div class="big" id="sTrust">–</div>
+        <div class="lbl">risk indicator</div>
+      </div>
+      <dl class="kv">
+        <dt>Speaker match</dt>
+        <dd id="sSpk">–</dd>
+        <dt>Synthetic signal (recent)</dt>
+        <dd id="sSyn">–</dd>
+        <dt>Pressure</dt>
+        <dd id="sPress">–</dd>
+      </dl>
+    </div>
+    <div>
+      <div class="lbl">
+        Voice checks · bar height = speaker match · red = synthetic or swap
+      </div>
+      <div id="sWave" class="wave"></div>
+    </div>
+    <div class="lbl">Decision timeline</div>
+    <div id="sLog" class="log"><div>Pick a call on the left.</div></div>
+    <div class="row">
+      <button id="sReport" class="ghost" disabled>Evidence report</button>
+      <button id="sKill" class="danger" disabled>End this call</button>
+    </div>
+    <div id="sReportBox" hidden class="item"></div>
+  </div>
+</section>
+
+<!-- ======================= KNOWLEDGE BASE & RAG ======================= -->
+<section id="tab-knowledge" class="grid" hidden>
+  <!-- Left column: Grounded RAG Assistant -->
+  <div class="card">
+    <div class="row between">
+      <h2>Reviewed policy library</h2>
+      <span id="ragStatus" class="pill">Ready</span>
+    </div>
+    <div class="muted">
+      Find an explanation in the reviewed demo policies. Answers include the
+      accepted source excerpt; the assistant abstains when a source is missing.
+    </div>
+
+    <div>
+      <div class="lbl" style="margin-bottom: 6px">
+        Explore a reviewed policy
+      </div>
+      <div class="row" id="quickQueries">
+        <button
+          type="button"
+          class="ghost"
+          data-q="How do I approve a transfer with a passkey?"
+        >
+          Passkey approval
+        </button>
+        <button
+          type="button"
+          class="ghost"
+          data-q="How do I verify the bank agent session?"
+        >
+          Verify a bank agent
+        </button>
+        <button
+          type="button"
+          class="ghost"
+          data-q="What can the support assistant delegate do?"
+        >
+          Delegate permissions
+        </button>
+      </div>
+    </div>
+
+    <form id="ragForm" class="row" autocomplete="off" style="margin-top: 4px">
+      <input
+        id="ragInput"
+        placeholder="Type a banking or scam query..."
+        style="flex: 1"
+        required
+      />
+      <button id="ragSubmit">Ask RAG</button>
+    </form>
+
+    <div
+      id="ragResults"
+      hidden
+      style="display: grid; gap: 12px; margin-top: 6px"
+    >
+      <div id="ragSpokenBox" class="notif bank">
+        <div class="lbl" style="color: var(--accent)">Accepted answer</div>
+        <div id="ragSpoken" style="font-weight: 600; font-size: 0.95rem"></div>
+      </div>
+
+      <div>
+        <div class="row between">
+          <div class="lbl">Source-backed excerpts</div>
+          <span id="ragVerifBadge" class="pill"></span>
+        </div>
+        <div
+          id="ragSentences"
+          style="display: grid; gap: 6px; margin-top: 6px"
+        ></div>
+      </div>
+
+      <details id="ragEvidenceDetails">
+        <summary class="lbl">
+          Retrieved Evidence & Sources (<span id="ragEvCount">0</span> items)
+        </summary>
+        <div
+          id="ragEvidenceList"
+          class="list"
+          style="margin-top: 8px; max-height: 260px; overflow-y: auto"
+        ></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- Right column: Research, Web Scraping & Knowledge Explorer -->
+  <div class="card">
+    <div class="row between">
+      <h2>Source review workspace</h2>
+      <span id="kbStatsPill" class="pill grey">Loading KB...</span>
+    </div>
+
+    <!-- Tool 1: Autonomous Research -->
+    <div class="item">
+      <div class="lbl">01 / Research a topic</div>
+      <div class="muted">
+        Staff access required. Searches approved hosts and quarantines fetched
+        material for review. Live calls cannot launch research.
+      </div>
+      <form
+        id="researchForm"
+        class="row"
+        autocomplete="off"
+        style="margin-top: 4px"
+      >
+        <input
+          id="researchInput"
+          placeholder="e.g. RBI cyber security guidelines 2026"
+          style="flex: 1"
+          required
+        />
+        <button id="researchBtn" class="ghost">Run Research</button>
+      </form>
+      <div
+        id="researchProgress"
+        hidden
+        class="log"
+        style="
+          margin-top: 8px;
+          max-height: 160px;
+          background: #f9fcfb;
+          padding: 8px;
+          border-radius: 8px;
+        "
+      ></div>
+    </div>
+
+    <!-- Tool 2: Direct Web Scraper -->
+    <div class="item">
+      <div class="lbl">02 / Submit an approved source</div>
+      <div class="muted">
+        Only allowlisted public HTTPS destinations are accepted. Inspect the
+        exact text and approve its hash before publishing.
+      </div>
+      <form
+        id="scrapeForm"
+        class="row"
+        autocomplete="off"
+        style="margin-top: 4px"
+      >
+        <input
+          id="scrapeInput"
+          type="url"
+          placeholder="https://example.com/advisory.html"
+          style="flex: 1"
+          required
+        />
+        <button id="scrapeBtn" class="ghost">Scrape URL</button>
+      </form>
+      <div
+        id="scrapeResult"
+        hidden
+        class="muted"
+        style="margin-top: 4px; font-size: 0.82rem"
+      ></div>
+    </div>
+
+    <!-- Tool 3: Knowledge Base Ledger -->
+    <div>
+      <div class="row between" style="margin-bottom: 6px">
+        <div class="lbl">Knowledge Base Claims Ledger</div>
+        <button
+          id="refreshKbBtn"
+          class="ghost"
+          style="padding: 3px 8px; font-size: 0.75rem"
+        >
+          Refresh
+        </button>
+      </div>
+      <div
+        id="kbClaimsList"
+        class="list"
+        style="max-height: 240px; overflow-y: auto"
+      >
+        <div class="empty">Loading claims...</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

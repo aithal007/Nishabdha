@@ -6,6 +6,16 @@ from app.knowledge import store
 
 DOCUMENTS = [
     {
+        "url": "demo://nishabdha/transfer-approval",
+        "title": "Demo policy: transfer and passkey approval",
+        "text": "In Nishabdha's simulated banking demo, every transfer requires a passkey approval in the customer app. Review the exact amount, saved beneficiary and source account before confirming. The server freezes these details and binds the passkey challenge to the action hash. Changing the transaction cancels the approval. Missing or stale required voice evidence holds a voice transfer; a passkey does not replace missing voice evidence.",
+    },
+    {
+        "url": "demo://nishabdha/delegate",
+        "title": "Demo policy: support assistant permissions",
+        "text": "A customer can authorize an AI support assistant with a passkey to create one support ticket within ten minutes. The permission names the assistant's signing key and can be revoked. The assistant must sign a fresh request and use a server nonce. It cannot transfer money, read balances or change account details. Replayed requests and attempts outside the support-ticket scope are refused.",
+    },
+    {
         "url": "demo://unclone/verification",
         "title": "Demo policy: caller verification",
         "text": "In this demonstration, sensitive actions require caller verification and independent approval in the customer app. Voice similarity alone does not authorize an action.",

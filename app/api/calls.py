@@ -83,8 +83,9 @@ async def create_call(body: CallCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/bank-calls", dependencies=[Depends(require_staff)])
 async def create_bank_call(body: BankCallCreate, db: AsyncSession = Depends(get_db)):
-    """Two-way trust: the bank calls the customer. A one-time code appears in the customer's app first,
-    and the agent says the same code - so the customer can tell a real bank call from an impersonator."""
+    """Staff-authorized outbound app session; the code is a matching aid.
+    Agent identity is verified through the separately signed session proof.
+    """
     cust = await db.get(Customer, body.customer_id)
     if cust is None:
         raise HTTPException(404, "customer not found")

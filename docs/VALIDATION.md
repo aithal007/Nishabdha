@@ -1,13 +1,17 @@
 # Validation record
 
-Validated locally on 15 October 2026 using Python 3.11.9 on Windows. Changes are in the local checkout; no remote push or deployment was performed.
+Validated locally on 15 October 2026 using Python 3.11.9 and Node 24 on Windows. Source and compiled frontend assets are published to the project repository; this record does not assert a hosted deployment or live vendor benchmark.
 
 ## Results
 
 - Original checkout baseline: 94 passed, 4 skipped, 1 failed. The pre-existing failure expected at least 30 knowledge chunks, but the original seeds produced 27.
-- Updated full suite: **134 passed, 4 skipped** in 34.18 seconds (`python -m pytest -q`). The skipped tests require optional real voice models; application security tests use explicit test voice mocks.
+- Updated full suite: **137 passed, 4 skipped** in 21.93 seconds (`python -m pytest -q`). The skipped tests require optional real voice models; application security tests use explicit test voice mocks. The new cases verify the policy-agent SSE contract, ignored client tools/instructions, and bounded request input.
+- Production frontend: `npm run build --prefix frontend` passed TypeScript checking and the Vite build. FastAPI serves the committed compiled assets.
+- Chromium/Playwright: **7 browser scenarios passed** in 21.1 seconds. Coverage includes a live WebSocket typed turn, customer data/navigation, CopilotKit policy replies, exact-transfer review/cancellation, virtual-browser WebAuthn provisioning, delegate ticket/receipt verification plus transfer/replay refusal, mobile fit, signed outbound bank-session verification, and keyboard behavior.
+- Axe automated checks found no WCAG 2 A/AA or 2.1 AA rule violations in the tested initial states of the four workspaces and policy assistant. This is limited automated coverage, not a complete accessibility conformance assessment.
+- `npm audit`: **0 reported vulnerabilities** after overriding the affected transitive KaTeX version. The headless assistant does not use a math renderer.
 - Browser security contract: **6 checks passed** (`node scripts/check_browser_security.cjs`) using real WebCrypto/P-256 verification, malformed/expired proofs, customer binding, canonical request hashes and simulated-mode disclosure.
-- Inline application JavaScript parsed successfully; `node --check app/static/security.js` passed.
+- `node --check app/static/security.js` and `node --check app/static/workspace.js` passed.
 - Critical Python syntax/undefined-name check passed: `ruff check app tests --select E9,F63,F7,F82`.
 - `git diff --check` passed. Broader repository lint rules include pre-existing style/security warnings and are not claimed clean.
 
@@ -19,6 +23,6 @@ Virtual authenticators generate real signatures validated by the WebAuthn librar
 
 ## Remaining external validation
 
-Actual DetectifAI request/response contract, enrollment behavior, score semantics/thresholds, quotas, real-audio accuracy and network latency require supplied credentials and API documentation. Hosted origin/RP settings and a physical browser authenticator require a deployment-specific smoke test. The JavaScript contract checks do not substitute for a full visual/browser or microphone/STT/TTS rehearsal.
+Actual DetectifAI request/response contract, enrollment behavior, score semantics/thresholds, quotas, real-audio accuracy and network latency require supplied credentials and API documentation. Hosted origin/RP settings and a physical browser authenticator require a deployment-specific smoke test. The Chromium tests use an explicit demo mock provider, a virtual authenticator, and disabled STT/TTS providers. They do not establish live microphone/speech-provider performance. Desktop and mobile screenshots were inspected; the remaining live microphone/STT/TTS rehearsal requires configured providers and consented recordings.
 
 Use `docs/SECURITY.md` for the consented held-out evaluation protocol and limitations. No detection benchmark, financial assurance certification, real payment execution or hackathon outcome is asserted.

@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import agents, calls, customer_app, knowledge, passkeys, staff, ws
+from app.api import agents, calls, copilot, customer_app, knowledge, passkeys, staff, ws
 from app.config import get_settings
 from app.core.session import SESSIONS
 from app.db import engine, init_db
@@ -97,6 +97,7 @@ app.include_router(staff.router)
 app.include_router(ws.router)
 app.include_router(passkeys.router)
 app.include_router(agents.router)
+app.include_router(copilot.router)
 
 
 @app.get("/health", tags=["system"])
@@ -120,4 +121,4 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 @app.get("/", include_in_schema=False)
 async def root():
     """The demo frontend (caller, customer phone app, fraud desk) - a single static page."""
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(STATIC / "ui" / "index.html")

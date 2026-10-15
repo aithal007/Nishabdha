@@ -1,6 +1,6 @@
 # Nishabdha — UNCLONE Voice Banking Guard
 
-A simulated banking voice agent that verifies callers, proves its application-session identity, and executes only the transaction approved by the customer. Python/FastAPI, SQLite, browser WebSockets, DetectifAI adapters, registered passkeys, and a fraud desk. No real payment rail is connected.
+A simulated banking voice agent that verifies callers, proves its application-session identity, and executes only the transaction approved by the customer. Python/FastAPI, SQLite, browser WebSockets, DetectifAI adapters, registered passkeys, and a fraud desk. The React interface includes a voice workspace, customer approval app, fraud desk, and reviewed knowledge library. No real payment rail is connected.
 
 ## Run locally
 
@@ -60,3 +60,18 @@ The additive security migration preserves historical customers, accounts, enroll
 ## Architecture and API
 
 Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the complete component map, voice evidence flow, immutable transfer and passkey flow, signed bank identity, bounded AI delegate, knowledge review, failure behavior, and demo sequence. See [`docs/API.md`](docs/API.md) for frontend routes and message contracts, and [`docs/VALIDATION.md`](docs/VALIDATION.md) for checks that were actually run and remaining live-provider validation.
+
+## Frontend development
+
+![Nishabdha voice workspace](docs/images/voice-workspace.png)
+
+Local demo interface with simulated voice results visibly disclosed. [Policy assistant preview](docs/images/policy-assistant.png).
+
+The production UI is included under `app/static/ui/` and served at `/` by FastAPI. It uses React/Vite, local shadcn/ui-style Radix components, Tailwind v4, and a lazy-loaded headless CopilotKit policy assistant. The assistant streams reviewed excerpts from `/api/copilot/policy`; it has no account access or banking tools.
+
+```powershell
+npm ci --prefix frontend
+npm run build --prefix frontend
+```
+
+Rebuild after changing frontend source. For browser checks, install Chromium with `cd frontend; npx playwright install chromium`, then run `npm run test:e2e`. Playwright starts its own isolated demo backend on port 8010 using `.venv`. See [`docs/FRONTEND.md`](docs/FRONTEND.md) for component ownership, design decisions, development-origin settings, and repository/license references.
