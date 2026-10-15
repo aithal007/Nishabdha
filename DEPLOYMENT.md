@@ -1,82 +1,41 @@
-# Deployment notes: Nishabdha
+# Deploy Nishabdha
 
-The security update requires one worker, persistent SQLite storage and a persistent bank signing key. Set `BANK_ORIGIN` to the exact HTTPS application origin and `WEBAUTHN_RP_ID` to its hostname before registering passkeys. Staff provisioning and strong staff/audit secrets are required. Review [SECURITY.md](docs/SECURITY.md) and provider hosting terms before deploying; the historical free-tier examples below are not verified pricing or availability guarantees.
+Nishabdha is a hackathon prototype with simulated banking only. It has no real payment rails. Do not use it for real financial or identity decisions.
 
-This guide explains how to deploy **UNCLONE Voice Banking Guard** (with continuous deepfake detection, voice biometric verification, autonomous threat research, web scraping, and grounded RAG) **completely for free**.
+## Render preview
 
----
+The repository includes `render.yaml` for a one-process Docker web service. The free Render plan is suitable only for a temporary, non-production preview:
 
-## 🏆 Option 1: Hugging Face Spaces (Recommended — 100% Free Forever)
+- It sleeps after inactivity and can take about a minute to wake.
+- Its filesystem is ephemeral. Demo accounts, passkey registrations, approvals, receipts, uploaded audio, and the bank signing key can be reset when the service sleeps, restarts, or redeploys.
+- Free services cannot attach persistent disks. A paid service with a persistent disk is needed to preserve the app's SQLite state and signing key across restarts. The SQLite app should remain a single process.
 
-**Why this is the best free option:**
-- **Specs:** **16 GB RAM**, **2 vCPUs**, and 50 GB storage — completely free without a credit card.
-- **Microphone Support:** Automatic HTTPS URL (`https://your-space.hf.space`), which modern browsers require for microphone audio streaming.
-- **WebSocket Friendly:** Full bi-directional streaming support for live voice calls and fraud desk feeds.
+To create the preview, sign in to Render, create a Blueprint from `aithal007/Nishabdha`, and select the `master` branch. Review the free instance plan, then set the app's fixed public origin after Render assigns its hostname:
 
-### Steps:
+```text
+BANK_ORIGIN=https://<your-render-hostname>
+WEBAUTHN_RP_ID=<your-render-hostname>
+```
 
-1. **Sign Up / Log In**: Go to [Hugging Face](https://huggingface.co) and sign in.
-2. **Create New Space**:
-   - Click your profile icon at top-right → **New Space**.
-   - **Space Name:** `unclone-voice-guard` (or your preferred name).
-   - **License:** `mit` or `apache-2.0`.
-   - **Space SDK:** Select **Docker** → **Blank**.
-   - **Space Hardware:** Select **CPU Basic (2 vCPU · 16 GB RAM · Free)**.
-   - Click **Create Space**.
-3. **Push Code**:
-   ```bash
-   git remote add space https://huggingface.co/spaces/<YOUR_USERNAME>/unclone-voice-guard
-   git push space main
-   ```
-   *(Or drag-and-drop the files via the Hugging Face web interface).*
-4. **Configure Secrets**:
-   - Go to **Settings** → **Variables and secrets**.
-   - Add Secret: `GROQ_API_KEY` = `your_free_groq_key` (Get free at [console.groq.com](https://console.groq.com/keys)).
-   - Add Secret (Optional): `STAFF_API_KEY` = `your_secure_password`.
-   - Add Secret (Optional): `DETECTIFAI_API_KEY` = `venue_key_when_available`.
-5. **Done!** Your Space builds in ~2 minutes and runs at `https://<YOUR_USERNAME>-unclone-voice-guard.hf.space`.
+Set these before enrolling or using passkeys. They must match the browser's HTTPS origin and hostname exactly. Do not use `localhost` in a hosted service.
 
----
+## Provider configuration
 
-## ☁️ Option 2: Render Free Web Service
+The voice UI can load without vendor credentials, but a live voice authorization demo cannot. Configure provider secrets in the hosting dashboard, never in Git:
 
-Render offers free web services using Docker containers.
+- `DETECTIFAI_API_KEY` and `DETECTIFAI_BASE_URL`, plus the endpoint/field settings from the sponsor's actual API contract. The current adapter defaults are examples and must be checked against that contract.
+- `GROQ_API_KEY` for Groq speech-to-text and language features selected in `render.yaml`.
+- Keep the generated `STAFF_API_KEY` and `AUDIT_HMAC_SECRET`; retrieve the staff key from the host's secret settings and share it only with the demo operator.
 
-### Steps:
-1. Push your repository to **GitHub** or **GitLab**.
-2. Sign in to [Render.com](https://render.com).
-3. Click **New +** → **Web Service**.
-4. Select your `UnClone` repository.
-5. In settings:
-   - **Environment:** `Docker` (Render will automatically detect `Dockerfile` and `render.yaml`).
-   - **Plan:** `Free`.
-   - **Health Check Path:** `/health`.
-6. Add Environment Variables:
-   - `GROQ_API_KEY`: Your Groq API key.
-   - `APP_ENV`: `demo`.
-7. Click **Create Web Service**.
+Without DetectifAI, voice verification is unavailable or degraded and voice-initiated transfers must remain held. Do not present mock/local checks as sponsor verification. A successful UI health check alone does not prove provider integration.
 
-> **Note on Render Free Tier:** Render spins down free containers after 15 minutes of inactivity; the next request will take ~40 seconds to warm up. For instant continuous availability without sleep, Option 1 (Hugging Face Spaces) is recommended.
+## Before sharing the URL
 
----
+1. Confirm `/health` is healthy and the UI clearly identifies simulated banking and provider status.
+2. Set `BANK_ORIGIN` and `WEBAUTHN_RP_ID` to the assigned HTTPS origin.
+3. Verify DetectifAI enrollment and checks with consented test clips. Confirm provider results and reasons in the fraud desk.
+4. Register a test customer passkey and verify the exact-action approval flow. Test a denied transfer and repeated request; balances must not change or debit twice.
+5. Rehearse the signed bank-session and one-ticket delegate flows. Confirm the delegate transfer is refused.
+6. On a free ephemeral instance, rehearse after a sleep/restart too: passkeys and demo state may be lost. Do not make persistence or availability claims based on this preview.
 
-## ⚡ Option 3: Railway / Koyeb Free Tiers
-
-1. Connect your GitHub repository.
-2. Railway and Koyeb automatically read the root `Dockerfile` and launch `python run.py`.
-3. Set `PORT` (automatically injected by Railway/Koyeb) and `GROQ_API_KEY`.
-4. The service will be live on an HTTPS domain with automatic SSL certificates.
-
----
-
-## 🛠️ Free Engines Summary
-
-| Feature | Primary Provider | Fallback / Zero-Cost Mode | Cost |
-|---|---|---|---|
-| **LLM & RAG** | Groq (`qwen/qwen3.8-27b`) | Rule-based semantic extractor + FTS5 BM25 | Free (Groq free tier) |
-| **Speech-to-Text (STT)** | Groq Whisper Large-v3-Turbo | faster-whisper CPU | Free |
-| **Text-to-Speech (TTS)** | Microsoft `edge-tts` (Neural en-IN, hi-IN, kn-IN) | Browser Web Speech API | Free |
-| **Speaker Verification** | DetectifAI API | SpeechBrain ECAPA-TDNN (local CPU) | Free |
-| **Deepfake Detection** | DetectifAI API | MelodyMachine wav2vec2 classifier (local CPU) | Free |
-| **Web Research & Search** | DuckDuckGo HTML / Wikipedia API | Offline Cached Knowledge Base | Free |
-| **Knowledge Store** | SQLite3 FTS5 + BM25 + Vector Cosine | In-memory / file SQLite | Free |
+For the security model, supported endpoints, limits and evaluation requirements, see [docs/SECURITY.md](docs/SECURITY.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/VALIDATION.md](docs/VALIDATION.md).
